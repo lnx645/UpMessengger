@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F0F2F5"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <!-- Header: avatar HE + nama + PIN - persis Parrot -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp"
+            app:cardBackgroundColor="@android:color/white"
+            android:layout_marginBottom="12dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingTop="28dp"
+                android:paddingBottom="24dp"
+                android:paddingHorizontal="16dp">
+
+                <FrameLayout
+                    android:layout_width="96dp"
+                    android:layout_height="96dp">
+
+                    <View
+                        android:layout_width="96dp"
+                        android:layout_height="96dp"
+                        android:background="@drawable/bg_avatar_parrot" />
+
+                    <TextView
+                        android:id="@+id/profilInitial"
+                        android:layout_width="96dp"
+                        android:layout_height="96dp"
+                        android:gravity="center"
+                        android:text="HE"
+                        android:textColor="#9C27B0"
+                        android:textSize="36sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.02" />
+
+                    <!-- badge edit biru -->
+                    <FrameLayout
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:layout_gravity="bottom|end"
+                        android:background="@drawable/bg_edit_badge"
+                        android:elevation="2dp">
+
+                        <ImageView
+                            android:layout_width="14dp"
+                            android:layout_height="14dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_edit_pencil" />
+                    </FrameLayout>
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/profilName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="hendra"
+                    android:textColor="#111B21"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="4dp">
+
+                    <TextView
+                        android:id="@+id/myPin"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="321 395"
+                        android:textColor="#757575"
+                        android:textSize="15sp"
+                        android:letterSpacing="0.04" />
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:layout_marginStart="6dp"
+                        android:src="@drawable/ic_qr_code"
+                        android:alpha="0.6" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Card QR + Profil -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp"
+            app:cardBackgroundColor="@android:color/white"
+            android:layout_marginBottom="12dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:id="@+id/rowQr"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
+
+                    <FrameLayout
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="@drawable/bg_icon_blue">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_qr_code" />
+                    </FrameLayout>
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        android:text="QR Code Saya"
+                        android:textColor="#111B21"
+                        android:textSize="15sp" />
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@drawable/ic_chevron" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="0.7dp"
+                    android:layout_marginStart="66dp"
+                    android:background="#0F000000" />
+
+                <LinearLayout
+                    android:id="@+id/rowProfilDetail"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
+
+                    <FrameLayout
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="@drawable/bg_icon_purple">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_person" />
+                    </FrameLayout>
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        android:text="Profil"
+                        android:textColor="#111B21"
+                        android:textSize="15sp" />
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@drawable/ic_chevron" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Card Pengaturan -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp"
+            app:cardBackgroundColor="@android:color/white"
+            android:layout_marginBottom="12dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="56dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:clickable="true" android:focusable="true" android:foreground="?attr/selectableItemBackground">
+                    <FrameLayout android:layout_width="36dp" android:layout_height="36dp" android:background="@drawable/bg_icon_purple"><ImageView android:layout_width="20dp" android:layout_height="20dp" android:layout_gravity="center" android:src="@drawable/ic_lock" /></FrameLayout>
+                    <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginStart="14dp" android:text="Privasi &amp; Keamanan" android:textColor="#111B21" android:textSize="15sp" />
+                    <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@drawable/ic_chevron" />
+                </LinearLayout>
+                <View android:layout_width="match_parent" android:layout_height="0.7dp" android:layout_marginStart="66dp" android:background="#0F000000" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="56dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:clickable="true" android:focusable="true" android:foreground="?attr/selectableItemBackground">
+                    <FrameLayout android:layout_width="36dp" android:layout_height="36dp" android:background="@drawable/bg_icon_blue"><ImageView android:layout_width="20dp" android:layout_height="20dp" android:layout_gravity="center" android:src="@drawable/ic_devices" /></FrameLayout>
+                    <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginStart="14dp" android:text="Perangkat tertaut" android:textColor="#111B21" android:textSize="15sp" />
+                    <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@drawable/ic_chevron" />
+                </LinearLayout>
+                <View android:layout_width="match_parent" android:layout_height="0.7dp" android:layout_marginStart="66dp" android:background="#0F000000" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="56dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:clickable="true" android:focusable="true" android:foreground="?attr/selectableItemBackground">
+                    <FrameLayout android:layout_width="36dp" android:layout_height="36dp" android:background="@drawable/bg_icon_red"><ImageView android:layout_width="20dp" android:layout_height="20dp" android:layout_gravity="center" android:src="@drawable/ic_bell" /></FrameLayout>
+                    <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginStart="14dp" android:text="Notifikasi" android:textColor="#111B21" android:textSize="15sp" />
+                    <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@drawable/ic_chevron" />
+                </LinearLayout>
+                <View android:layout_width="match_parent" android:layout_height="0.7dp" android:layout_marginStart="66dp" android:background="#0F000000" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="56dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:clickable="true" android:focusable="true" android:foreground="?attr/selectableItemBackground">
+                    <FrameLayout android:layout_width="36dp" android:layout_height="36dp" android:background="@drawable/bg_icon_orange"><ImageView android:layout_width="20dp" android:layout_height="20dp" android:layout_gravity="center" android:src="@drawable/ic_palette" /></FrameLayout>
+                    <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginStart="14dp" android:text="Tampilan" android:textColor="#111B21" android:textSize="15sp" />
+                    <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@drawable/ic_chevron" />
+                </LinearLayout>
+                <View android:layout_width="match_parent" android:layout_height="0.7dp" android:layout_marginStart="66dp" android:background="#0F000000" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="56dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:clickable="true" android:focusable="true" android:foreground="?attr/selectableItemBackground">
+                    <FrameLayout android:layout_width="36dp" android:layout_height="36dp" android:background="@drawable/bg_icon_green"><ImageView android:layout_width="20dp" android:layout_height="20dp" android:layout_gravity="center" android:src="@drawable/ic_globe" /></FrameLayout>
+                    <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginStart="14dp" android:text="Bahasa" android:textColor="#111B21" android:textSize="15sp" />
+                    <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@drawable/ic_chevron" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Manajemen Penyimpanan - card terpisah seperti Parrot -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp"
+            app:cardBackgroundColor="@android:color/white"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:id="@+id/rowStorage"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="16dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <FrameLayout
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="@drawable/bg_icon_green">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_devices" />
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:text="Manajemen Penyimpanan"
+                    android:textColor="#111B21"
+                    android:textSize="15sp" />
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_chevron" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Invite via PIN - tetap ada tapi compact di bawah -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp"
+            app:cardBackgroundColor="@android:color/white">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Invite Teman via PIN" android:textColor="#111B21" android:textSize="14sp" android:textStyle="bold" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="8 karakter hex" android:textColor="#9E9E9E" android:textSize="12sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="12dp">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        app:boxCornerRadiusTopStart="10dp"
+                        app:boxCornerRadiusTopEnd="10dp"
+                        app:boxCornerRadiusBottomStart="10dp"
+                        app:boxCornerRadiusBottomEnd="10dp"
+                        app:boxStrokeColor="#9C27B0"
+                        android:hint="PIN teman">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/pinInput"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textCapCharacters"
+                            android:maxLength="8"
+                            android:textSize="15sp"
+                            android:letterSpacing="0.08"
+                            android:textAllCaps="true" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <FrameLayout android:layout_width="wrap_content" android:layout_height="48dp" android:layout_marginStart="8dp">
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/invite"
+                            android:layout_width="wrap_content"
+                            android:layout_height="48dp"
+                            android:text="Invite"
+                            app:cornerRadius="10dp"
+                            android:backgroundTint="#9C27B0" />
+                        <ProgressBar android:id="@+id/progressInvite" android:layout_width="20dp" android:layout_height="20dp" android:layout_gravity="center" android:visibility="gone" android:indeterminateTint="#FFFFFF" />
+                    </FrameLayout>
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginTop="10dp">
+                    <FrameLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:layout_marginEnd="6dp">
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnCopy" android:layout_width="match_parent" android:layout_height="match_parent" android:text="Salin PIN" android:textSize="12sp" app:cornerRadius="18dp" android:backgroundTint="#111B21" app:icon="@drawable/ic_qr_code" />
+                        <ProgressBar android:id="@+id/progressCopy" android:layout_width="16dp" android:layout_height="16dp" android:layout_gravity="center" android:visibility="gone" android:indeterminateTint="#FFFFFF" />
+                    </FrameLayout>
+                    <FrameLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp">
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnShare" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent" android:layout_height="match_parent" android:text="Bagikan" android:textSize="12sp" app:cornerRadius="18dp" app:strokeColor="#111B21" android:textColor="#111B21" />
+                        <ProgressBar android:id="@+id/progressShare" android:layout_width="16dp" android:layout_height="16dp" android:layout_gravity="center" android:visibility="gone" android:indeterminateTint="#111B21" />
+                    </FrameLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</ScrollView>

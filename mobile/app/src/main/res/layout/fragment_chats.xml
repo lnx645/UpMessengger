@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/white">
+
+    <!-- Search bar  -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:background="@android:color/white">
+
+        <LinearLayout
+            android:id="@+id/searchBar"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_search"
+            android:paddingHorizontal="14dp">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_search"
+                android:contentDescription="Cari" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:text="Cari atau mulai chat baru"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="58dp"
+        android:clipToPadding="false"
+        android:paddingBottom="8dp" />
+
+    <!-- Empty state  -->
+    <LinearLayout
+        android:id="@+id/empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="32dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:src="@drawable/ic_chat_large"
+            android:contentDescription="Chat" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Belum ada chat"
+            android:textColor="@color/text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:gravity="center" />
+
+        <TextView
+            android:layout_width="260dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Mulai chat dengan teman via PIN. Ketuk tab PIN Saya untuk invite."
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:lineSpacingExtra="3dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/emptyAction"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="Buka PIN Saya"
+            app:cornerRadius="20dp"
+            android:backgroundTint="@color/upme_green_dark" />
+    </LinearLayout>
+
+    <!-- FAB new chat -->
+    <FrameLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="bottom|end" android:layout_margin="16dp">
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabNewChat"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_new_chat"
+            android:contentDescription="Chat baru"
+            app:tint="@android:color/white"
+            android:backgroundTint="@color/upme_green"
+            app:elevation="6dp" />
+        <ProgressBar android:id="@+id/progressFab" android:layout_width="24dp" android:layout_height="24dp" android:layout_gravity="center" android:visibility="gone" android:indeterminateTint="@android:color/white" />
+    </FrameLayout>
+
+</FrameLayout>

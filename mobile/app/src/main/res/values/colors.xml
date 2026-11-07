@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="upme_green">#25D366</color>
+    <color name="upme_green_dark">#075E54</color>
+    <color name="upme_green_light">#128C7E</color>
+    <color name="upme_green_accent">#06CF9C</color>
+    <color name="upme_teal_dark">#0B4B45</color>
+    <color name="upme_dark">#111B21</color>
+    <color name="upme_dark_surface">#202C33</color>
+    <color name="upme_dark_card">#2A3942</color>
+    <color name="bubble_sent">#DCF8C6</color>
+    <color name="bubble_sent_dark">#005C4B</color>
+    <color name="bubble_received">#FFFFFF</color>
+    <color name="bubble_received_dark">#202C33</color>
+    <color name="chat_wallpaper">#E5DDD5</color>
+    <color name="chat_wallpaper_dark">#0B141A</color>
+    <color name="text_primary">#111B21</color>
+    <color name="text_secondary">#667781</color>
+    <color name="text_time">#8696A0</color>
+    <color name="blue_tick">#53BDEB</color>
+    <color name="divider">#E9EDEF</color>
+    <color name="divider_dark">#2A3942</color>
+    <color name="unread_badge">#25D366</color>
+    <color name="search_bg">#F0F2F5</color>
+</resources>

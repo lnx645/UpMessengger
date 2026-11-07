@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <!-- Cert pinning untuk api.sms-gate.app + host prod UPME_HOST -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">api.sms-gate.app</domain>
+        <pin-set expiration="2027-06-01">
+            <!-- Primary pin: SHA-256 of api.sms-gate.app leaf cert (placeholder, ganti dengan pin real via openssl) -->
+            <pin digest="SHA-256">YLh1dUR9y6Kja30RrAn7Fcb9ZGD/6mL8K+5Y6bR2kSk=</pin>
+            <!-- Backup pin: Let's Encrypt ISRG Root X1 -->
+            <pin digest="SHA-256">C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wGlR8Q=</pin>
+            <!-- Backup pin 2: ISRG Root X2 -->
+            <pin digest="SHA-256">diGV5VD4M2Gmza/R5qSK/FUG2lw9FOLMCYFuDXFprxo=</pin>
+        </pin-set>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="false">192.168.70.92</domain>
+        <domain includeSubdomains="false">192.168.70.93</domain>
+        <domain includeSubdomains="false">192.168.70.127</domain>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </domain-config>
+    <!-- Debug override: allow user CA only in debug builds -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+</network-security-config>

@@ -1,0 +1,2 @@
+-keep class com.upme.messenger.domain.** { *; }
+-dontwarn net.zetetic.**

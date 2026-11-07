@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F0F2F5"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Card PIN Saya -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp"
+            app:strokeColor="#10000000"
+            app:strokeWidth="1dp"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="PIN Saya"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.06" />
+
+                <TextView
+                    android:id="@+id/myPin"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="A1B2 C3D4"
+                    android:textColor="@color/upme_green_dark"
+                    android:textSize="30sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.12" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Bagikan PIN ini ke teman untuk di-invite"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
+                    android:gravity="center" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:layout_marginTop="16dp">
+
+                    <FrameLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginEnd="8dp">
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnCopy"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Salin"
+                            android:textSize="13sp"
+                            app:cornerRadius="20dp"
+                            app:icon="@android:drawable/ic_menu_share"
+                            android:backgroundTint="@color/upme_green_dark" />
+                        <ProgressBar android:id="@+id/progressCopy" android:layout_width="16dp" android:layout_height="16dp" android:layout_gravity="center" android:visibility="gone" android:indeterminateTint="#FFFFFF" />
+                    </FrameLayout>
+
+                    <FrameLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content">
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnShare"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:text="Bagikan"
+                            android:textSize="13sp"
+                            app:cornerRadius="20dp"
+                            app:strokeColor="@color/upme_green_dark"
+                            android:textColor="@color/upme_green_dark" />
+                        <ProgressBar android:id="@+id/progressShare" android:layout_width="16dp" android:layout_height="16dp" android:layout_gravity="center" android:visibility="gone" android:indeterminateTint="@color/upme_green_dark" />
+                    </FrameLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Card Invite Teman -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp"
+            app:strokeColor="#10000000"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Invite Teman"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Masukkan 8 karakter PIN teman (hex A-F, 0-9)"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    app:boxCornerRadiusTopStart="12dp"
+                    app:boxCornerRadiusTopEnd="12dp"
+                    app:boxCornerRadiusBottomStart="12dp"
+                    app:boxCornerRadiusBottomEnd="12dp"
+                    app:boxStrokeColor="@color/upme_green"
+                    app:hintEnabled="true"
+                    android:hint="Masukkan PIN teman">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/pinInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textCapCharacters"
+                        android:maxLength="8"
+                        android:textSize="18sp"
+                        android:letterSpacing="0.15"
+                        android:textAllCaps="true" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <FrameLayout android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="12dp">
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/invite"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:text="Invite via PIN"
+                        android:textSize="14sp"
+                        app:cornerRadius="12dp"
+                        android:backgroundTint="@color/upme_green_dark" />
+                    <ProgressBar android:id="@+id/progressInvite" android:layout_width="20dp" android:layout_height="20dp" android:layout_gravity="center" android:visibility="gone" android:indeterminateTint="#FFFFFF" />
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:layout_gravity="center"
+                    android:text="PIN 8 hex dari pubkey hash • E2EE"
+                    android:textColor="@color/text_time"
+                    android:textSize="11sp"
+                    android:gravity="center" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_gravity="center"
+            android:text="UpMessenger • Aman &amp; Cepat"
+            android:textColor="@color/text_time"
+            android:textSize="11sp" />
+    </LinearLayout>
+</ScrollView>

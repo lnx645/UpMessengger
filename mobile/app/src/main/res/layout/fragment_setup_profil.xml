@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/white"
+    android:padding="20dp"
+    android:gravity="center_horizontal">
+
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:text="Atur profil" android:textColor="#111B21" android:textSize="20sp" android:textStyle="bold" />
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Nama akan terlihat oleh teman" android:textColor="#667781" android:textSize="13sp" />
+    <FrameLayout android:id="@+id/avatarContainer" android:layout_width="96dp" android:layout_height="96dp" android:layout_marginTop="24dp" android:background="@drawable/bg_avatar_parrot" android:clipToOutline="true" android:clickable="true" android:focusable="true" android:foreground="?attr/selectableItemBackground">
+        <ImageView android:id="@+id/imgAvatar" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="centerCrop" android:visibility="gone" />
+        <TextView android:id="@+id/txtInitial" android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:text="U" android:textColor="#9C27B0" android:textSize="36sp" android:textStyle="bold" android:fontFamily="@font/manrope" />
+        <FrameLayout android:layout_width="28dp" android:layout_height="28dp" android:layout_gravity="bottom|end" android:background="@drawable/bg_edit_badge"><ImageView android:layout_width="14dp" android:layout_height="14dp" android:layout_gravity="center" android:src="@drawable/ic_edit_pencil" /></FrameLayout>
+    </FrameLayout>
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Ketuk foto untuk ganti avatar" android:textColor="#667781" android:textSize="11sp" android:fontFamily="@font/manrope" />
+    <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" app:boxStrokeColor="#075E54" android:hint="Nama kamu">
+        <com.google.android.material.textfield.TextInputEditText android:id="@+id/inputNama" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="textPersonName|textCapWords" android:maxLength="25" android:textSize="16sp" />
+    </com.google.android.material.textfield.TextInputLayout>
+    <TextView android:id="@+id/txtPinPreview" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="PIN: --" android:textColor="#9E9E9E" android:textSize="12sp" />
+    <FrameLayout android:layout_width="match_parent" android:layout_height="54dp" android:layout_marginTop="24dp">
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnSelesai" android:layout_width="match_parent" android:layout_height="match_parent" android:text="Selesai" app:cornerRadius="12dp" android:backgroundTint="#075E54" />
+        <ProgressBar android:id="@+id/progressSelesai" android:layout_width="24dp" android:layout_height="24dp" android:layout_gravity="center" android:visibility="gone" android:indeterminateTint="#FFFFFF" />
+    </FrameLayout>
+</LinearLayout>

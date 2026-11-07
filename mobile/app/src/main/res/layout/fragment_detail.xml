@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_wallpaper">
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp" />
+
+    <!-- Input bar  -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="6dp"
+        android:background="#E6F0EBE6">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_input_bar"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:minHeight="44dp"
+            android:elevation="1dp">
+
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_emoji"
+                android:contentDescription="Emoji"
+                android:padding="6dp" />
+
+            <EditText
+                android:id="@+id/input"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:background="@null"
+                android:hint="Ketik pesan"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_secondary"
+                android:textSize="15sp"
+                android:inputType="textMultiLine|textCapSentences"
+                android:maxLines="5"
+                android:paddingVertical="8dp" />
+
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_attach"
+                android:contentDescription="Lampiran"
+                android:padding="6dp" />
+
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_camera"
+                android:contentDescription="Kamera"
+                android:padding="6dp" />
+        </LinearLayout>
+
+        <FrameLayout android:layout_width="46dp" android:layout_height="46dp" android:layout_marginStart="6dp">
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/send"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:src="@drawable/ic_send"
+                android:contentDescription="Kirim"
+                app:tint="@android:color/white"
+                android:backgroundTint="@color/upme_green"
+                app:fabCustomSize="46dp"
+                app:maxImageSize="22dp" />
+            <ProgressBar android:id="@+id/progressSend" android:layout_width="20dp" android:layout_height="20dp" android:layout_gravity="center" android:visibility="gone" android:indeterminateTint="@android:color/white" />
+        </FrameLayout>
+    </LinearLayout>
+</LinearLayout>

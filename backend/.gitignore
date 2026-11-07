@@ -1,0 +1,7 @@
+/_build
+/deps
+priv/jwt_keys.json
+priv/*.dets
+priv/audit.log
+priv/*.log
+erl_crash.dump

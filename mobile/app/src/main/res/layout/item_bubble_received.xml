@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingStart="8dp"
+    android:paddingEnd="48dp"
+    android:paddingTop="2dp"
+    android:paddingBottom="2dp"
+    android:gravity="start">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_bubble_received"
+        android:padding="8dp"
+        android:elevation="1dp"
+        android:layout_marginEnd="32dp">
+
+        <TextView
+            android:id="@+id/msgText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Halo, ini pesan diterima"
+            android:textColor="@color/text_primary"
+            android:textSize="15sp"
+            android:lineSpacingExtra="2dp" />
+
+        <TextView
+            android:id="@+id/msgTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="12:34"
+            android:textColor="@color/text_time"
+            android:textSize="11sp"
+            android:layout_gravity="end"
+            android:layout_marginTop="4dp" />
+    </LinearLayout>
+</LinearLayout>

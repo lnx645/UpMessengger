@@ -9,6 +9,8 @@ defmodule UpMessenger.Infrastructure.AuthStore do
   @user_table :upme_users
   @rate_table :upme_rate
   @attempt_table :upme_otp_attempts
+  @pending_table :upme_pending
+  @blocked_table :upme_blocked
   @otp_ttl 300_000
   @rate_limit 5
   @rate_window 600_000
@@ -94,7 +96,19 @@ defmodule UpMessenger.Infrastructure.AuthStore do
         name = "User #{String.slice(pin, 0, 4)}"
         pair = Jwt.generate_pair(%{phone: phone, pin: pin, name: name})
         {pub, _priv} = :crypto.generate_key(:ecdh, :x25519)
-        user = %Auth{phone: phone, pin: pin, name: name, token: pair.access_token, refresh_token: pair.refresh_token, created_at: System.system_time(:millisecond), two_fa_enabled: false, identity_pub: Base.encode64(pub)}
+        user = %Auth{
+          phone: phone,
+          pin: pin,
+          name: name,
+          token: pair.access_token,
+          refresh_token: pair.refresh_token,
+          created_at: System.system_time(:millisecond),
+          two_fa_enabled: false,
+          identity_pub: Base.encode64(pub),
+          auto_approve: true,
+          who_can_add: true,
+          block_invite: false
+        }
         :ets.insert(@user_table, {phone, user})
         persist_user(phone, user)
         {:ok, user}
@@ -233,11 +247,212 @@ defmodule UpMessenger.Infrastructure.AuthStore do
     result
   end
 
+  @doc "Ambil privacy settings untuk user."
+  def get_privacy(phone) do
+    case find_by_phone(phone) do
+      {:ok, user} ->
+        {:ok,
+         %{
+           auto_approve: Map.get(user, :auto_approve, true),
+           who_can_add: Map.get(user, :who_can_add, true),
+           block_invite: Map.get(user, :block_invite, false)
+         }}
+
+      err -> err
+    end
+  end
+
+  @doc "Update privacy settings (DETS persist). Field autoApprove sync ke DETS."
+  def set_privacy(phone, attrs, meta \\ %{}) when is_map(attrs) do
+    norm = Auth.normalize_phone(phone)
+    ip = Map.get(meta, :ip)
+
+    result =
+      case :ets.lookup(@user_table, norm) do
+        [{^norm, user}] ->
+          auto_approve =
+            case Map.get(attrs, "auto_approve") do
+              v when is_boolean(v) -> v
+              _ -> Map.get(user, :auto_approve, true)
+            end
+
+          who_can_add =
+            case Map.get(attrs, "who_can_add") do
+              v when is_boolean(v) -> v
+              _ -> Map.get(user, :who_can_add, true)
+            end
+
+          block_invite =
+            case Map.get(attrs, "block_invite") do
+              v when is_boolean(v) -> v
+              _ -> Map.get(user, :block_invite, false)
+            end
+
+          updated = %{user | auto_approve: auto_approve, who_can_add: who_can_add, block_invite: block_invite}
+          :ets.insert(@user_table, {norm, updated})
+          persist_user(norm, updated)
+          {:ok, updated}
+
+        [] ->
+          {:error, :not_found}
+      end
+
+    AuditLog.log(:set_privacy, %{phone: norm, ip: ip, result: elem(result, 0)})
+    result
+  end
+
   def find_by_phone(phone) do
     norm = Auth.normalize_phone(phone)
     case :ets.lookup(@user_table, norm) do
       [{^norm, user}] -> {:ok, user}
       [] -> {:error, :not_found}
+    end
+  end
+
+  def find_by_pin(pin) when is_binary(pin) do
+    pin_up = String.upcase(pin)
+    case :ets.match(@user_table, {:"$1", %{pin: pin_up}}) do
+      [] ->
+        # fallback scan
+        :ets.tab2list(@user_table)
+        |> Enum.find(fn {_phone, %Auth{pin: p}} -> p == pin_up end)
+        |> case do
+          {_, user} -> {:ok, user}
+          nil -> {:error, :not_found}
+        end
+      [[phone] | _] -> find_by_phone(phone)
+    end
+  end
+  def find_by_pin(_), do: {:error, :not_found}
+
+  def search_users(query) when is_binary(query) do
+    q = String.upcase(String.trim(query))
+    if byte_size(q) < 2 do
+      []
+    else
+      :ets.tab2list(@user_table)
+      |> Enum.filter(fn {_phone, %Auth{pin: p, name: n}} ->
+        String.contains?(p, q) or String.contains?(String.upcase(n), q)
+      end)
+      |> Enum.take(20)
+      |> Enum.map(fn {_phone, u} -> %{pin: u.pin, name: u.name, phone: u.phone} end)
+    end
+  end
+
+  # Pending / invite logic
+  def invite(from_phone, target_pin, _meta \\ %{}) when is_binary(from_phone) and is_binary(target_pin) do
+    raw = String.upcase(String.trim(target_pin) |> String.replace(" ", ""))
+    cond do
+      byte_size(raw) != 8 or not Regex.match?(~r/^[0-9A-F]{8}$/, raw) ->
+        {:error, :invalid_pin}
+      true ->
+        with {:ok, from_user} <- find_by_phone(from_phone),
+             true <- from_user.pin != raw or {:error, :self_invite},
+             {:ok, target_user} <- find_by_pin(raw) do
+          if Map.get(target_user, :block_invite, false) do
+            {:error, :blocked}
+          else
+            # check already teman? client handles, but also check pending exists
+            key = {from_user.pin, raw}
+            case :ets.lookup(@pending_table, key) do
+              [{^key, :pending}] -> {:error, :already_pending}
+              _ ->
+                if not Map.get(target_user, :who_can_add, true) do
+                  {:error, :not_allowed}
+                else
+                  if Map.get(target_user, :auto_approve, true) do
+                    {:ok, :accepted}
+                  else
+                    :ets.insert(@pending_table, {key, :pending, System.system_time(:millisecond)})
+                    :ets.insert(@pending_table, {{raw, from_user.pin}, :pending_in, System.system_time(:millisecond)})
+                    {:ok, :pending}
+                  end
+                end
+            end
+          end
+        else
+          {:error, :self_invite} -> {:error, :self_invite}
+          {:error, _} = e -> e
+          false -> {:error, :self_invite}
+        end
+    end
+  end
+
+  def pending_for(pin) when is_binary(pin) do
+    pin_up = String.upcase(pin)
+    :ets.match(@pending_table, {{pin_up, :"$1"}, :pending_in, :"$2"})
+    |> Enum.map(fn [from_pin, ts] ->
+      case find_by_pin(from_pin) do
+        {:ok, u} -> %{pin: from_pin, name: u.name, phone: u.phone, created_at: ts}
+        _ -> %{pin: from_pin, name: from_pin, phone: "", created_at: ts}
+      end
+    end)
+  end
+
+  def accept_invite(my_pin, from_pin) when is_binary(my_pin) and is_binary(from_pin) do
+    my_up = String.upcase(my_pin)
+    from_up = String.upcase(from_pin)
+    key_in = {my_up, from_up}
+    key_out = {from_up, my_up}
+    case :ets.lookup(@pending_table, key_in) do
+      [{^key_in, :pending_in, _}] ->
+        :ets.delete(@pending_table, key_in)
+        :ets.delete(@pending_table, key_out)
+        {:ok, :accepted}
+      _ -> {:error, :not_found}
+    end
+  end
+
+  def reject_invite(my_pin, from_pin) when is_binary(my_pin) and is_binary(from_pin) do
+    my_up = String.upcase(my_pin)
+    from_up = String.upcase(from_pin)
+    key_in = {my_up, from_up}
+    key_out = {from_up, my_up}
+    case :ets.lookup(@pending_table, key_in) do
+      [{^key_in, :pending_in, _}] ->
+        :ets.delete(@pending_table, key_in)
+        :ets.delete(@pending_table, key_out)
+        {:ok, :rejected}
+      _ -> {:error, :not_found}
+    end
+  end
+
+  def blocked_for(pin) when is_binary(pin) do
+    pin_up = String.upcase(pin)
+    case :ets.lookup(@blocked_table, pin_up) do
+      [{^pin_up, list}] -> list
+      [] -> []
+    end
+  end
+
+  def block_pin(my_pin, target_pin) when is_binary(my_pin) and is_binary(target_pin) do
+    my_up = String.upcase(my_pin)
+    t_up = String.upcase(target_pin)
+    list = blocked_for(my_up)
+    if t_up in list do
+      {:ok, list}
+    else
+      new_list = [t_up | list]
+      :ets.insert(@blocked_table, {my_up, new_list})
+      # also remove pending
+      :ets.delete(@pending_table, {my_up, t_up})
+      :ets.delete(@pending_table, {t_up, my_up})
+      {:ok, new_list}
+    end
+  end
+
+  def unblock_pin(my_pin, target_pin) when is_binary(my_pin) and is_binary(target_pin) do
+    my_up = String.upcase(my_pin)
+    t_up = String.upcase(target_pin)
+    list = blocked_for(my_up) |> Enum.reject(&(&1 == t_up))
+    :ets.insert(@blocked_table, {my_up, list})
+    {:ok, list}
+  end
+
+  def phone_for_pin(pin) when is_binary(pin) do
+    case find_by_pin(pin) do
+      {:ok, u} -> {:ok, u.phone}
+      e -> e
     end
   end
 
@@ -324,6 +539,8 @@ defmodule UpMessenger.Infrastructure.AuthStore do
     :ets.new(@user_table, [:named_table, :set, :public, read_concurrency: true, write_concurrency: true])
     :ets.new(@rate_table, [:named_table, :set, :public, read_concurrency: true, write_concurrency: true])
     :ets.new(@attempt_table, [:named_table, :set, :public, read_concurrency: true, write_concurrency: true])
+    :ets.new(@pending_table, [:named_table, :set, :public, read_concurrency: true, write_concurrency: true])
+    :ets.new(@blocked_table, [:named_table, :set, :public, read_concurrency: true, write_concurrency: true])
     UpMessenger.Domain.Jwt.ensure_keys!()
     # load persisted users (DETS -> ETS)
     try do

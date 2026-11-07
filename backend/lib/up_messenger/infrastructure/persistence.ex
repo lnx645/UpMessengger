@@ -174,7 +174,10 @@ defmodule UpMessenger.Infrastructure.Persistence do
       "two_fa_hash" => u.two_fa_hash,
       "two_fa_salt" => u.two_fa_salt,
       "two_fa_enabled" => u.two_fa_enabled,
-      "identity_pub" => u.identity_pub
+      "identity_pub" => u.identity_pub,
+      "auto_approve" => Map.get(u, :auto_approve, true),
+      "who_can_add" => Map.get(u, :who_can_add, true),
+      "block_invite" => Map.get(u, :block_invite, false)
     }
   end
 
@@ -189,7 +192,10 @@ defmodule UpMessenger.Infrastructure.Persistence do
       two_fa_hash: map["two_fa_hash"],
       two_fa_salt: map["two_fa_salt"],
       two_fa_enabled: map["two_fa_enabled"] || false,
-      identity_pub: map["identity_pub"]
+      identity_pub: map["identity_pub"],
+      auto_approve: Map.get(map, "auto_approve", true),
+      who_can_add: Map.get(map, "who_can_add", true),
+      block_invite: Map.get(map, "block_invite", false)
     }
   end
 end

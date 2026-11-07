@@ -4,6 +4,9 @@
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
   <uses-permission android:name="android.permission.RECEIVE_SMS" />
   <uses-permission android:name="android.permission.READ_SMS" />
+  <uses-permission android:name="android.permission.READ_CONTACTS" />
+  <uses-permission android:name="android.permission.CAMERA" />
+  <uses-feature android:name="android.hardware.camera" android:required="false" />
   <application android:name=".UpMeApp" android:hardwareAccelerated="false" android:label="UpMessenger" android:theme="@style/Theme.UpMessenger" android:largeHeap="false" android:networkSecurityConfig="@xml/network_security_config" android:usesCleartextTraffic="false">
     <activity android:name=".presentation.MainActivity" android:exported="true">
       <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>

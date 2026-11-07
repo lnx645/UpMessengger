@@ -25,21 +25,56 @@
                 android:layout_height="18dp"
                 android:src="@drawable/ic_search" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+            <EditText
+                android:id="@+id/inputSearch"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
                 android:layout_marginStart="10dp"
-                android:text="Cari teman"
-                android:textColor="@color/text_secondary"
-                android:textSize="14sp" />
+                android:background="@android:color/transparent"
+                android:hint="Cari teman"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_secondary"
+                android:textSize="14sp"
+                android:inputType="text"
+                android:imeOptions="actionSearch"
+                android:maxLines="1"
+                android:singleLine="true" />
         </LinearLayout>
     </LinearLayout>
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="58dp"
+        android:scrollbars="none"
+        android:paddingHorizontal="8dp">
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroup"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:singleSelection="true"
+            app:selectionRequired="false">
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipSemua"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Semua"
+                style="@style/Widget.Material3.Chip.Filter" />
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipPending"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Permintaan"
+                style="@style/Widget.Material3.Chip.Filter" />
+        </com.google.android.material.chip.ChipGroup>
+    </HorizontalScrollView>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/list"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="58dp"
+        android:layout_marginTop="96dp"
         android:clipToPadding="false"
         android:paddingBottom="8dp" />
 

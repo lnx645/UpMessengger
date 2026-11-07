@@ -1,8 +1,36 @@
 defmodule UpMessenger.Domain.Auth do
   @moduledoc "Arsitektur WhatsApp: registrasi via nomor HP + OTP 6 digit. PIN 8 hex, JWT RS256, Registration Lock 2FA."
   @enforce_keys [:phone, :pin, :name]
-  defstruct [:phone, :pin, :name, :token, :refresh_token, :created_at, :two_fa_hash, :two_fa_salt, :two_fa_enabled, :identity_pub]
-  @type t :: %__MODULE__{phone: binary(), pin: binary(), name: binary(), token: binary() | nil, refresh_token: binary() | nil, created_at: integer(), two_fa_hash: binary() | nil, two_fa_salt: binary() | nil, two_fa_enabled: boolean(), identity_pub: binary() | nil}
+  defstruct [
+    :phone,
+    :pin,
+    :name,
+    :token,
+    :refresh_token,
+    :created_at,
+    :two_fa_hash,
+    :two_fa_salt,
+    :two_fa_enabled,
+    :identity_pub,
+    :auto_approve,
+    :who_can_add,
+    :block_invite
+  ]
+  @type t :: %__MODULE__{
+          phone: binary(),
+          pin: binary(),
+          name: binary(),
+          token: binary() | nil,
+          refresh_token: binary() | nil,
+          created_at: integer(),
+          two_fa_hash: binary() | nil,
+          two_fa_salt: binary() | nil,
+          two_fa_enabled: boolean(),
+          identity_pub: binary() | nil,
+          auto_approve: boolean(),
+          who_can_add: boolean(),
+          block_invite: boolean()
+        }
 
   @spec normalize_phone(binary()) :: binary()
   def normalize_phone(phone) when is_binary(phone) do

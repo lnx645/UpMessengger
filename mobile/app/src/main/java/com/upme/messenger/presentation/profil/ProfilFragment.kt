@@ -122,14 +122,10 @@ class ProfilFragment : Fragment() {
                 if (!ClickGuard.canClick(400)) return@setOnClickListener
                 when (tv.text.toString()) {
                   "Privasi & Keamanan" -> {
-                    AlertDialog.Builder(requireContext()).setTitle("Privasi & Keamanan")
-                      .setItems(arrayOf("Aktifkan 2FA (Registration Lock)", "Matikan 2FA", "Status 2FA")) { _, which ->
-                        when (which) {
-                          0 -> showTwoFaSetup()
-                          1 -> showTwoFaDisable()
-                          2 -> { val m = if (authPrefs.token != null) "Token JWT RS256 aktif, 2FA: cek server" else "Belum login"; context?.let { AppToast.show(it, m) } }
-                        }
-                      }.show()
+                    parentFragmentManager.beginTransaction()
+                      .replace(R.id.container, com.upme.messenger.presentation.profil.PrivasiKeamananFragment())
+                      .addToBackStack("privasi")
+                      .commit()
                   }
                   else -> showComingSoon(tv.text.toString())
                 }
@@ -185,6 +181,11 @@ class ProfilFragment : Fragment() {
       val t = v.findViewById<EditText>(R.id.pinInput).text.toString().trim().uppercase().replace(" ", "")
       if (t.length != 8 || !t.all { it in "0123456789ABCDEF" }) {
         context?.let { AppToast.show(it, "PIN harus 8 karakter hex (0-9, A-F)") }
+        return@setOnClickListener
+      }
+      val myPin = authPrefs.pin ?: prefs.getString("pin", null)
+      if (myPin != null && t.equals(myPin, ignoreCase = true)) {
+        context?.let { AppToast.show(it, "Tidak bisa invite PIN sendiri") }
         return@setOnClickListener
       }
       val prettyT = t.chunked(4).joinToString(" ")

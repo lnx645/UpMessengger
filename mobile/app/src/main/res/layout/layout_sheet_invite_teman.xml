@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_sheet_rounded"
+    android:paddingBottom="24dp">
+
+    <View android:layout_width="40dp" android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/bg_sheet_handle" />
+
+    <TextView
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginStart="24dp" android:layout_marginEnd="24dp"
+        android:layout_marginTop="14dp"
+        android:text="Tambah Teman"
+        android:textColor="#111B21"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:fontFamily="@font/manrope"
+        android:gravity="center"/>
+
+    <TextView
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginStart="24dp" android:layout_marginEnd="24dp"
+        android:layout_marginTop="6dp"
+        android:text="Masukkan PIN 8 hex teman, atau pilih via QR / Kontak"
+        android:textColor="#667781"
+        android:textSize="12sp"
+        android:fontFamily="@font/manrope"
+        android:gravity="center"/>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginStart="24dp" android:layout_marginEnd="24dp"
+        android:layout_marginTop="16dp"
+        app:boxCornerRadiusTopStart="12dp" app:boxCornerRadiusTopEnd="12dp"
+        app:boxCornerRadiusBottomStart="12dp" app:boxCornerRadiusBottomEnd="12dp"
+        app:boxStrokeColor="#075E54">
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/inputPinInvite"
+            android:layout_width="match_parent" android:layout_height="50dp"
+            android:hint="PIN 8 hex (contoh: A1B2 C3D4)"
+            android:textSize="14sp"
+            android:fontFamily="@font/manrope"
+            android:inputType="textCapCharacters|textNoSuggestions|textVisiblePassword"
+            android:maxLength="9"/>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="10dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnQrInvite"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp" android:layout_height="42dp" android:layout_weight="1"
+            android:layout_marginStart="24dp" android:layout_marginEnd="6dp"
+            android:text="QR"
+            android:textSize="12sp"
+            android:fontFamily="@font/manrope"
+            app:strokeColor="#075E54" app:cornerRadius="10dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnKontakInvite"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp" android:layout_height="42dp" android:layout_weight="1"
+            android:layout_marginStart="6dp" android:layout_marginEnd="24dp"
+            android:text="Kontak"
+            android:textSize="12sp"
+            android:fontFamily="@font/manrope"
+            app:strokeColor="#075E54" app:cornerRadius="10dp"/>
+    </LinearLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnKirimInvite"
+        android:layout_width="match_parent" android:layout_height="50dp"
+        android:layout_marginStart="24dp" android:layout_marginEnd="24dp"
+        android:layout_marginTop="16dp"
+        android:text="Kirim Invite"
+        android:textColor="#FFFFFF"
+        android:fontFamily="@font/manrope"
+        android:backgroundTint="#075E54"
+        app:cornerRadius="12dp"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnBatalInvite"
+        style="@style/Widget.Material3.Button.TextButton"
+        android:layout_width="match_parent" android:layout_height="42dp"
+        android:layout_marginStart="24dp" android:layout_marginEnd="24dp"
+        android:layout_marginTop="6dp"
+        android:text="Batal"
+        android:textColor="#667781"
+        android:fontFamily="@font/manrope"/>
+</LinearLayout>

@@ -202,6 +202,164 @@ defmodule UpMessenger.Interface.TcpHandler do
           _ -> ThousandIsland.Socket.send(socket, Frame.encode(0x1F, Jason.encode!(%{error: "unauthenticated"}))); {:continue, %{state | buffer: rest}}
         end
 
+      {:ok, 0x30, payload, rest} ->
+        # Privacy sync: {phone, token, auto_approve, who_can_add, block_invite} -> DETS persist
+        with {:ok, map} <- Jason.decode(payload),
+             token when is_binary(token) <- map["token"],
+             {:ok, user} <- AuthStore.find_by_token(token),
+             phone when is_binary(phone) <- map["phone"] || user.phone,
+             true <- user.phone == UpMessenger.Domain.Auth.normalize_phone(phone) do
+          attrs = %{
+            "auto_approve" => Map.get(map, "auto_approve"),
+            "who_can_add" => Map.get(map, "who_can_add"),
+            "block_invite" => Map.get(map, "block_invite")
+          }
+          case AuthStore.set_privacy(phone, attrs, %{ip: ip}) do
+            {:ok, updated} ->
+              ThousandIsland.Socket.send(socket, Frame.encode(0x30, Jason.encode!(%{
+                status: "privacy_updated",
+                auto_approve: Map.get(updated, :auto_approve, true),
+                who_can_add: Map.get(updated, :who_can_add, true),
+                block_invite: Map.get(updated, :block_invite, false)
+              })))
+            {:error, r} -> ThousandIsland.Socket.send(socket, Frame.encode(0x1F, Jason.encode!(%{error: inspect(r)})))
+          end
+          {:continue, %{state | buffer: rest}}
+        else
+          _ -> ThousandIsland.Socket.send(socket, Frame.encode(0x1F, Jason.encode!(%{error: "unauthenticated"}))); {:continue, %{state | buffer: rest}}
+        end
+
+      {:ok, 0x31, payload, rest} ->
+        # Privacy pull: {phone, token} -> {auto_approve, who_can_add, block_invite}
+        with {:ok, map} <- Jason.decode(payload),
+             token when is_binary(token) <- map["token"],
+             {:ok, user} <- AuthStore.find_by_token(token) do
+          phone = Map.get(map, "phone", user.phone)
+          if user.phone == UpMessenger.Domain.Auth.normalize_phone(phone) do
+            case AuthStore.get_privacy(phone) do
+              {:ok, priv} ->
+                ThousandIsland.Socket.send(socket, Frame.encode(0x31, Jason.encode!(%{
+                  auto_approve: priv.auto_approve,
+                  who_can_add: priv.who_can_add,
+                  block_invite: priv.block_invite
+                })))
+              {:error, r} -> ThousandIsland.Socket.send(socket, Frame.encode(0x1F, Jason.encode!(%{error: inspect(r)})))
+            end
+          else
+            ThousandIsland.Socket.send(socket, Frame.encode(0x1F, Jason.encode!(%{error: "forbidden"})))
+          end
+          {:continue, %{state | buffer: rest}}
+        else
+          _ -> ThousandIsland.Socket.send(socket, Frame.encode(0x1F, Jason.encode!(%{error: "unauthenticated"}))); {:continue, %{state | buffer: rest}}
+        end
+
+      {:ok, 0x32, payload, rest} ->
+        # Invite teman: {phone, token, target_pin}
+        with {:ok, map} <- Jason.decode(payload),
+             token when is_binary(token) <- map["token"],
+             {:ok, user} <- AuthStore.find_by_token(token),
+             phone when is_binary(phone) <- Map.get(map, "phone", user.phone),
+             true <- user.phone == UpMessenger.Domain.Auth.normalize_phone(phone),
+             target when is_binary(target) <- map["target_pin"] || map["pin"] do
+          case AuthStore.invite(phone, target, %{ip: ip}) do
+            {:ok, :accepted} -> ThousandIsland.Socket.send(socket, Frame.encode(0x32, Jason.encode!(%{status: "accepted", target_pin: String.upcase(target)})))
+            {:ok, :pending} -> ThousandIsland.Socket.send(socket, Frame.encode(0x32, Jason.encode!(%{status: "pending", target_pin: String.upcase(target)})))
+            {:error, r} -> ThousandIsland.Socket.send(socket, Frame.encode(0x1F, Jason.encode!(%{error: inspect(r)})))
+          end
+          {:continue, %{state | buffer: rest}}
+        else
+          _ -> ThousandIsland.Socket.send(socket, Frame.encode(0x1F, Jason.encode!(%{error: "unauthenticated"}))); {:continue, %{state | buffer: rest}}
+        end
+
+      {:ok, 0x34, payload, rest} ->
+        # Pending list: {phone, token}
+        with {:ok, map} <- Jason.decode(payload),
+             token when is_binary(token) <- map["token"],
+             {:ok, user} <- AuthStore.find_by_token(token) do
+          phone = Map.get(map, "phone", user.phone)
+          if user.phone == UpMessenger.Domain.Auth.normalize_phone(phone) do
+            list = AuthStore.pending_for(user.pin)
+            ThousandIsland.Socket.send(socket, Frame.encode(0x34, Jason.encode!(%{pending: list})))
+          else
+            ThousandIsland.Socket.send(socket, Frame.encode(0x1F, Jason.encode!(%{error: "forbidden"})))
+          end
+          {:continue, %{state | buffer: rest}}
+        else
+          _ -> ThousandIsland.Socket.send(socket, Frame.encode(0x1F, Jason.encode!(%{error: "unauthenticated"}))); {:continue, %{state | buffer: rest}}
+        end
+
+      {:ok, 0x35, payload, rest} ->
+        with {:ok, map} <- Jason.decode(payload),
+             token when is_binary(token) <- map["token"],
+             {:ok, user} <- AuthStore.find_by_token(token),
+             from_pin when is_binary(from_pin) <- map["from_pin"] || map["pin"] do
+          case AuthStore.accept_invite(user.pin, from_pin) do
+            {:ok, _} -> ThousandIsland.Socket.send(socket, Frame.encode(0x35, Jason.encode!(%{status: "accepted", pin: String.upcase(from_pin)})))
+            {:error, r} -> ThousandIsland.Socket.send(socket, Frame.encode(0x1F, Jason.encode!(%{error: inspect(r)})))
+          end
+          {:continue, %{state | buffer: rest}}
+        else
+          _ -> ThousandIsland.Socket.send(socket, Frame.encode(0x1F, Jason.encode!(%{error: "unauthenticated"}))); {:continue, %{state | buffer: rest}}
+        end
+
+      {:ok, 0x36, payload, rest} ->
+        with {:ok, map} <- Jason.decode(payload),
+             token when is_binary(token) <- map["token"],
+             {:ok, user} <- AuthStore.find_by_token(token),
+             from_pin when is_binary(from_pin) <- map["from_pin"] || map["pin"] do
+          case AuthStore.reject_invite(user.pin, from_pin) do
+            {:ok, _} -> ThousandIsland.Socket.send(socket, Frame.encode(0x36, Jason.encode!(%{status: "rejected"})))
+            {:error, r} -> ThousandIsland.Socket.send(socket, Frame.encode(0x1F, Jason.encode!(%{error: inspect(r)})))
+          end
+          {:continue, %{state | buffer: rest}}
+        else
+          _ -> ThousandIsland.Socket.send(socket, Frame.encode(0x1F, Jason.encode!(%{error: "unauthenticated"}))); {:continue, %{state | buffer: rest}}
+        end
+
+      {:ok, 0x37, payload, rest} ->
+        with {:ok, map} <- Jason.decode(payload),
+             token when is_binary(token) <- map["token"],
+             {:ok, user} <- AuthStore.find_by_token(token),
+             pin when is_binary(pin) <- map["pin"] || map["target_pin"] do
+          # if block=true then block
+          if Map.get(map, "block", false) do
+            {:ok, _} = AuthStore.block_pin(user.pin, pin)
+            ThousandIsland.Socket.send(socket, Frame.encode(0x37, Jason.encode!(%{status: "blocked"})))
+          else
+            # just delete is client-side; server just ack
+            ThousandIsland.Socket.send(socket, Frame.encode(0x37, Jason.encode!(%{status: "deleted"})))
+          end
+          {:continue, %{state | buffer: rest}}
+        else
+          _ -> ThousandIsland.Socket.send(socket, Frame.encode(0x1F, Jason.encode!(%{error: "unauthenticated"}))); {:continue, %{state | buffer: rest}}
+        end
+
+      {:ok, 0x38, payload, rest} ->
+        with {:ok, map} <- Jason.decode(payload),
+             token when is_binary(token) <- map["token"],
+             {:ok, _user} <- AuthStore.find_by_token(token),
+             q when is_binary(q) <- map["query"] || "" do
+          results = AuthStore.search_users(q)
+          ThousandIsland.Socket.send(socket, Frame.encode(0x38, Jason.encode!(%{results: results})))
+          {:continue, %{state | buffer: rest}}
+        else
+          _ -> ThousandIsland.Socket.send(socket, Frame.encode(0x1F, Jason.encode!(%{error: "unauthenticated"}))); {:continue, %{state | buffer: rest}}
+        end
+
+      {:ok, 0x39, payload, rest} ->
+        with {:ok, map} <- Jason.decode(payload),
+             token when is_binary(token) <- map["token"],
+             {:ok, _user} <- AuthStore.find_by_token(token),
+             pin when is_binary(pin) <- map["pin"] do
+          case AuthStore.phone_for_pin(pin) do
+            {:ok, phone} -> ThousandIsland.Socket.send(socket, Frame.encode(0x39, Jason.encode!(%{pin: String.upcase(pin), phone: phone})))
+            {:error, r} -> ThousandIsland.Socket.send(socket, Frame.encode(0x1F, Jason.encode!(%{error: inspect(r)})))
+          end
+          {:continue, %{state | buffer: rest}}
+        else
+          _ -> ThousandIsland.Socket.send(socket, Frame.encode(0x1F, Jason.encode!(%{error: "unauthenticated"}))); {:continue, %{state | buffer: rest}}
+        end
+
       {:ok, _type, _payload, rest} ->
         {:continue, %{state | buffer: rest}}
 

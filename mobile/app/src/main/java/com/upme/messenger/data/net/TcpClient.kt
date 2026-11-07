@@ -79,6 +79,71 @@ class TcpClient(private val dao: MessageDao, private val host: String = "127.0.0
     }
   }
 
+  // --- Teman frames ---
+
+  private fun requestOnce(payload: ByteArray, type: Int): Pair<Int, ByteArray> {
+    val s = openSocket()
+    try {
+      s.soTimeout = 5000
+      val out = DataOutputStream(s.getOutputStream())
+      val inp = DataInputStream(s.getInputStream())
+      out.writeInt(payload.size + 1); out.writeByte(type); out.write(payload); out.flush()
+      val len = inp.readInt(); val t = inp.readByte().toInt() and 0xFF
+      val body = ByteArray(len - 1); inp.readFully(body)
+      return Pair(t, body)
+    } finally { try { s.close() } catch (_: Exception) {} }
+  }
+
+  fun inviteTeman(phone: String, token: String, targetPin: String): String? {
+    return try {
+      val payload = JSONObject().put("phone", phone).put("token", token).put("target_pin", targetPin).toString().toByteArray()
+      val (t, body) = requestOnce(payload, 0x32)
+      val json = JSONObject(String(body))
+      if (t == 0x32) json.optString("status", null) else { json.optString("error", null) }
+    } catch (_: Exception) { null }
+  }
+
+  fun syncPending(phone: String, token: String): List<Map<String, String>> {
+    return try {
+      val payload = JSONObject().put("phone", phone).put("token", token).toString().toByteArray()
+      val (t, body) = requestOnce(payload, 0x34)
+      if (t == 0x34) {
+        val arr = JSONObject(String(body)).optJSONArray("pending") ?: return emptyList()
+        (0 until arr.length()).map { arr.getJSONObject(it).toMapString() }
+      } else emptyList()
+    } catch (_: Exception) { emptyList() }
+  }
+
+  private fun JSONObject.toMapString(): Map<String, String> {
+    val m = mutableMapOf<String, String>()
+    keys().forEach { k -> m[k] = optString(k, "") }
+    return m
+  }
+
+  fun acceptInvite(phone: String, token: String, fromPin: String): Boolean {
+    return try {
+      val payload = JSONObject().put("phone", phone).put("token", token).put("from_pin", fromPin).toString().toByteArray()
+      val (t, _) = requestOnce(payload, 0x35)
+      t == 0x35
+    } catch (_: Exception) { false }
+  }
+
+  fun rejectInvite(phone: String, token: String, fromPin: String): Boolean {
+    return try {
+      val payload = JSONObject().put("phone", phone).put("token", token).put("from_pin", fromPin).toString().toByteArray()
+      val (t, _) = requestOnce(payload, 0x36)
+      t == 0x36
+    } catch (_: Exception) { false }
+  }
+
+  fun deleteTeman(phone: String, token: String, pin: String, block: Boolean): Boolean {
+    return try {
+      val payload = JSONObject().put("phone", phone).put("token", token).put("pin", pin).put("block", block).toString().toByteArray()
+      val (t, _) = requestOnce(payload, 0x37)
+      t == 0x37
+    } catch (_: Exception) { false }
+  }
+
   // Overload tanpa token untuk kompatibilitas lama -> tolak (jangan kirim tanpa auth)
   @Deprecated("Gunakan send(..., token) untuk rilis publik")
   fun send(conversationId: String, id: String, cipherB64: String) {

@@ -18,7 +18,7 @@ class MainActivity : AppCompatActivity() {
   private lateinit var toolbar: MaterialToolbar
   private lateinit var bottomNav: BottomNavigationView
   private lateinit var authPrefs: AuthPrefs
-  private val titles = mapOf(R.id.nav_chats to "UpMessenger", R.id.nav_updates to "Updates", R.id.nav_teman to "Teman", R.id.nav_profil to "Profil", R.id.nav_detail to "Chat")
+  private val titles = mapOf(R.id.nav_chats to "UpMessenger", R.id.nav_updates to "Updates", R.id.nav_teman to "Teman", R.id.nav_profil to "Profil", R.id.nav_privasi_keamanan to "Privasi & Keamanan", R.id.nav_detail to "Chat")
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -91,6 +91,7 @@ class MainActivity : AppCompatActivity() {
       toolbar.visibility = View.GONE
       return
     }
+    val isPrivasi = cur is com.upme.messenger.presentation.profil.PrivasiKeamananFragment
     val isDetail = cur is ChatDetailFragment
     val isAuth = cur is WelcomeFragment || cur is com.upme.messenger.presentation.auth.PhoneFragment || cur is com.upme.messenger.presentation.auth.OtpFragment || cur is com.upme.messenger.presentation.auth.SetupProfilFragment
     if (isAuth) {
@@ -101,7 +102,8 @@ class MainActivity : AppCompatActivity() {
       return
     }
     toolbar.visibility = View.VISIBLE
-    updateChromeFor(!isDetail, if (isDetail) R.id.nav_detail else bottomNav.selectedItemId)
+    val hideBottom = isDetail || isPrivasi
+    updateChromeFor(!hideBottom, if (isDetail) R.id.nav_detail else if (isPrivasi) R.id.nav_privasi_keamanan else bottomNav.selectedItemId)
   }
 
   private fun updateChromeFor(showBottomNav: Boolean, selectedId: Int) {

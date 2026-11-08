@@ -6,9 +6,11 @@ import java.io.File
 
 class TemanForceCloseTest {
   private val temanPathCandidates = listOf(
+    "app/src/main/java/com/upme/messenger/presentation/friend/FriendFragment.kt",
+    "src/main/java/com/upme/messenger/presentation/friend/FriendFragment.kt",
+    "../app/src/main/java/com/upme/messenger/presentation/friend/FriendFragment.kt",
+    "/home/demo/upchat/mobile/app/src/main/java/com/upme/messenger/presentation/friend/FriendFragment.kt",
     "app/src/main/java/com/upme/messenger/presentation/teman/TemanFragment.kt",
-    "src/main/java/com/upme/messenger/presentation/teman/TemanFragment.kt",
-    "../app/src/main/java/com/upme/messenger/presentation/teman/TemanFragment.kt",
     "/home/demo/upchat/mobile/app/src/main/java/com/upme/messenger/presentation/teman/TemanFragment.kt"
   )
   private fun findTemanFile(): File = temanPathCandidates.map { File(it) }.firstOrNull { it.exists() } ?: File(temanPathCandidates[0])

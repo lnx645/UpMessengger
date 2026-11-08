@@ -57,8 +57,7 @@ object AppSheet {
         if (config.secondaryText != null) {
             btnSecondary.text = config.secondaryText
             btnSecondary.visibility = View.VISIBLE
-            btnSecondary.setOnClickListener {
-                if (!ClickGuard.canClick(400)) return@setOnClickListener
+            btnSecondary.debounceClick(400) {
                 config.onSecondary?.invoke()
                 dialog.dismiss()
             }
@@ -66,8 +65,7 @@ object AppSheet {
             btnSecondary.visibility = View.GONE
         }
 
-        btnPrimary.setOnClickListener {
-            if (!ClickGuard.canClick(400)) return@setOnClickListener
+        btnPrimary.debounceClick(400) {
             config.onPrimary?.invoke()
             if (config.dismissOnPrimary) dialog.dismiss()
         }

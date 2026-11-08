@@ -13,9 +13,9 @@ import com.upme.messenger.R
 import com.upme.messenger.UpMeApp
 import com.upme.messenger.presentation.chats.ChatAdapter
 import com.upme.messenger.presentation.chats.ChatItem
-import com.upme.messenger.presentation.common.ClickGuard
 import com.upme.messenger.presentation.common.setLoading
 import kotlinx.coroutines.launch
+import com.upme.messenger.presentation.common.debounceClick
 
 /** Timeline Updates: real dari teman + pesan terbaru, bukan dummy statis. WA-style loading. */
 class UpdatesFragment : Fragment() {
@@ -51,8 +51,7 @@ class UpdatesFragment : Fragment() {
     refresh()
     val btn = v.findViewById<MaterialButton>(R.id.btnBuatUpdate)
     val progress = v.findViewById<ProgressBar>(R.id.progressBuatUpdate)
-    btn?.setOnClickListener {
-      if (!ClickGuard.canClick()) return@setOnClickListener
+    btn?.debounceClick(500L) {
       btn.setLoading(true, progress)
       btn.postDelayed({
         btn.setLoading(false, progress)

@@ -11,22 +11,24 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.upme.messenger.R
 import com.upme.messenger.UpMeApp
-import com.upme.messenger.presentation.common.ClickGuard
 import com.upme.messenger.presentation.common.setLoading
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import com.upme.messenger.presentation.common.debounceClick
+import com.upme.messenger.presentation.common.PerViewDebounce
 
 /** Daftar chat : avatar bulat + preview + jam + badge, DiffUtil 60fps, empty state card. WA-style FAB loading. */
 class ChatsFragment : Fragment() {
   private lateinit var adapter: ChatAdapter
   private val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
+  private val openDebounce = PerViewDebounce(400)
 
   override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View = i.inflate(R.layout.fragment_chats, c, false)
 
   override fun onViewCreated(v: View, s: Bundle?) {
     adapter = ChatAdapter { item ->
-      if (!ClickGuard.canClick(400)) return@ChatAdapter
+      if (!openDebounce.canClick()) return@ChatAdapter
       (requireActivity() as com.upme.messenger.presentation.MainActivity).openDetail(item.id, item.name)
     }
     val list = v.findViewById<RecyclerView>(R.id.list)
@@ -35,18 +37,16 @@ class ChatsFragment : Fragment() {
 
     val fab = v.findViewById<FloatingActionButton>(R.id.fabNewChat)
     val progressFab = v.findViewById<ProgressBar>(R.id.progressFab)
-    v.findViewById<MaterialButton>(R.id.emptyAction)?.setOnClickListener {
-      if (!ClickGuard.canClick()) return@setOnClickListener
-      parentFragmentManager.beginTransaction().replace(R.id.container, com.upme.messenger.presentation.profil.ProfilFragment()).commit()
+    v.findViewById<MaterialButton>(R.id.emptyAction)?.debounceClick(500L) {
+      parentFragmentManager.beginTransaction().replace(R.id.container, com.upme.messenger.presentation.profile.ProfileFragment()).commit()
       requireActivity().findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar).title = "Profil"
       requireActivity().findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav).selectedItemId = R.id.nav_profil
     }
-    fab?.setOnClickListener {
-      if (!ClickGuard.canClick()) return@setOnClickListener
+    fab?.debounceClick(500L) {
       fab.setLoading(true, progressFab)
       fab.postDelayed({
         fab.setLoading(false, progressFab)
-        parentFragmentManager.beginTransaction().replace(R.id.container, com.upme.messenger.presentation.profil.ProfilFragment()).commit()
+        parentFragmentManager.beginTransaction().replace(R.id.container, com.upme.messenger.presentation.profile.ProfileFragment()).commit()
         requireActivity().findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar).title = "Profil"
       }, 300)
     }

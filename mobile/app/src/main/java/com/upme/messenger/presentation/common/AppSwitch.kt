@@ -15,7 +15,7 @@ import com.upme.messenger.R
  *
  * Baris setting dengan title + optional subtitle + MaterialSwitch di kanan.
  * Warna track/thumb mengikuti upme_green_dark (#075E54) selaras themes.xml.
- * Ripple & debounce via [ClickGuard].
+ * Ripple & debounce per-view via [debounceClick].
  *
  * Usage code:
  *   val row = AppSwitch(context).apply {
@@ -74,8 +74,8 @@ class AppSwitch @JvmOverloads constructor(
     init {
         orientation = HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
-        val padH = dp(16)
-        val padV = dp(12)
+        val padH = resources.dp(16)
+        val padV = resources.dp(12)
         setPadding(padH, padV, padH, padV)
         isClickable = true
         isFocusable = true
@@ -87,8 +87,8 @@ class AppSwitch @JvmOverloads constructor(
             resources, android.R.drawable.list_selector_background, context.theme
         )
 
-        val manrope = FontCache.regular(context)
-        val manropeMedium = FontCache.medium(context)
+        val manrope = FontCacheShared.regular(context)
+        val manropeMedium = FontCacheShared.medium(context)
 
         val textContainer = LinearLayout(context).apply {
             orientation = VERTICAL
@@ -110,7 +110,7 @@ class AppSwitch @JvmOverloads constructor(
             maxLines = 2
             visibility = GONE
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-                topMargin = dp(2)
+                topMargin = resources.dp(2)
             }
         }
 
@@ -119,7 +119,7 @@ class AppSwitch @JvmOverloads constructor(
 
         switch = MaterialSwitch(context).apply {
             layoutParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
-                marginStart = dp(16)
+                marginStart = resources.dp(16)
             }
             // Material3 switch colors are themed via colorPrimary; keep default from Theme.UpMessenger
             isClickable = true
@@ -129,11 +129,8 @@ class AppSwitch @JvmOverloads constructor(
         addView(textContainer)
         addView(switch)
 
-        // Whole row click toggles switch (debounced)
-        setOnClickListener {
-            if (!ClickGuard.canClick(300)) return@setOnClickListener
-            switch.toggle()
-        }
+        // Whole row click toggles switch (debounced per-view)
+        debounceClick(300) { switch.toggle() }
         switch.setOnCheckedChangeListener { _, checked ->
             if (!suppressCallback) onCheckedChange?.invoke(checked)
         }
@@ -155,17 +152,4 @@ class AppSwitch @JvmOverloads constructor(
         }
     }
 
-    // dp via Dimens.kt
-    private object FontCache {
-        var regular: Typeface? = null
-        var medium: Typeface? = null
-        fun regular(c: Context): Typeface? {
-            if (regular == null) regular = ResourcesCompat.getFont(c, R.font.manrope_regular)
-            return regular
-        }
-        fun medium(c: Context): Typeface? {
-            if (medium == null) medium = ResourcesCompat.getFont(c, R.font.manrope_medium)
-            return medium
-        }
-    }
 }

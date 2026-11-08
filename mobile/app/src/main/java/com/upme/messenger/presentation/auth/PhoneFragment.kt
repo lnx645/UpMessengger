@@ -9,9 +9,9 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.upme.messenger.R
 import com.upme.messenger.data.auth.AuthRepository
-import com.upme.messenger.presentation.common.ClickGuard
 import com.upme.messenger.presentation.common.setLoading
 import kotlinx.coroutines.launch
+import com.upme.messenger.presentation.common.debounceClick
 
 class PhoneFragment : Fragment() {
   private val repo by lazy { AuthRepository() }
@@ -20,10 +20,9 @@ class PhoneFragment : Fragment() {
     val input = v.findViewById<EditText>(R.id.inputPhone)
     val btn = v.findViewById<MaterialButton>(R.id.btnKirimOtp)
     val progress = v.findViewById<ProgressBar>(R.id.progressKirimOtp)
-    btn.setOnClickListener {
-      if (!ClickGuard.canClick()) return@setOnClickListener
+    btn.debounceClick {
       val raw = input.text.toString().trim()
-      if (!PhoneValidator.isValid(raw, "ID")) { context?.let { AppToast.show(it, "Nomor tidak valid (pakai format +62...)") }; return@setOnClickListener }
+      if (!PhoneValidator.isValid(raw, "ID")) { context?.let { AppToast.show(it, "Nomor tidak valid (pakai format +62...)") }; return@debounceClick }
       val phone = PhoneValidator.formatE164(raw, "ID") ?: raw
       btn.setLoading(true, progress)
       viewLifecycleOwner.lifecycleScope.launch {
@@ -45,8 +44,7 @@ class PhoneFragment : Fragment() {
       }
     }
     val btnDev = v.findViewById<View>(R.id.btnDevSkip)
-    btnDev?.setOnClickListener {
-      if (!ClickGuard.canClick()) return@setOnClickListener
+    btnDev?.debounceClick {
       context?.let { AppToast.show(it, "Dev login nonaktif di rilis publik") }
     }
   }

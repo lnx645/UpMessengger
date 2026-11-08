@@ -18,7 +18,7 @@ import com.google.android.material.card.MaterialCardView
  *   </com.upme.messenger.presentation.common.AppCard>
  *
  * Usage code:
- *   val card = AppCard(context).apply { radius = dp(20f) }
+ *   val card = AppCard(context).apply { asHeaderCard() }
  */
 class AppCard @JvmOverloads constructor(
     context: Context,
@@ -35,7 +35,7 @@ class AppCard @JvmOverloads constructor(
             "http://schemas.android.com/apk/res-auto", "cardElevation"
         ) != null
 
-        if (!hasRadius) radius = dp(16f)
+        if (!hasRadius) radius = resources.dpF(16f)
         if (!hasElevation) cardElevation = 0f
         if (strokeWidth == 0) strokeWidth = 0
         // keep cardBackgroundColor as set in XML or default white
@@ -45,12 +45,12 @@ class AppCard @JvmOverloads constructor(
 
     /** Helper — 20dp variant for header cards (avatar, profil header). */
     fun asHeaderCard() {
-        radius = dp(20f)
+        radius = resources.dpF(20f)
     }
 
     /** Helper — 12dp compact variant. */
     fun asCompactCard() {
-        radius = dp(12f)
+        radius = resources.dpF(12f)
     }
 
     // dp via Dimens.kt extension

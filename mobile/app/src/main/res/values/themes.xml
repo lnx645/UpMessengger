@@ -34,4 +34,18 @@
     <style name="Widget.UpMe.Button.Primary.Pill" parent="Widget.UpMe.Button.Primary">
         <item name="cornerRadius">18dp</item>
     </style>
+
+    <style name="TextAppearance.UpMe.Title" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:fontFamily">@font/manrope_medium</item>
+        <item name="fontFamily">@font/manrope_medium</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+    <style name="TextAppearance.UpMe.Body" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:fontFamily">@font/manrope</item>
+        <item name="fontFamily">@font/manrope</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+        <item name="android:lineSpacingExtra">2dp</item>
+    </style>
 </resources>

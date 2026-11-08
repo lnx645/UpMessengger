@@ -3,128 +3,70 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/white">
+    android:background="?attr/colorSurface">
 
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="8dp"
-        android:background="@android:color/white">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="42dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:background="@drawable/bg_search"
-            android:paddingHorizontal="14dp">
-
-            <ImageView
-                android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:src="@drawable/ic_search" />
-
-            <EditText
-                android:id="@+id/inputSearch"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:layout_marginStart="10dp"
-                android:background="@android:color/transparent"
-                android:hint="Cari teman"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_secondary"
-                android:textSize="14sp"
-                android:inputType="text"
-                android:imeOptions="actionSearch"
-                android:maxLines="1"
-                android:singleLine="true" />
-        </LinearLayout>
-    </LinearLayout>
-
-    <HorizontalScrollView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="58dp"
-        android:scrollbars="none"
-        android:paddingHorizontal="8dp"
-        android:background="@android:color/white"
-        android:elevation="2dp">
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/chipGroup"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:singleSelection="true"
-            app:selectionRequired="false">
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chipSemua"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Semua"
-                style="@style/Widget.Material3.Chip.Filter" />
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chipPending"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Permintaan"
-                style="@style/Widget.Material3.Chip.Filter" />
-        </com.google.android.material.chip.ChipGroup>
-    </HorizontalScrollView>
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/list"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="104dp"
-        android:clipToPadding="false"
-        android:paddingBottom="8dp" />
+        android:orientation="vertical">
 
-    <LinearLayout
-        android:id="@+id/empty"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="32dp"
-        android:translationY="40dp"
-        android:visibility="gone">
-
-        <ImageView
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:src="@drawable/ic_people"
-            android:alpha="0.35" />
-
-        <TextView
-            android:layout_width="wrap_content"
+        <com.upme.messenger.presentation.common.AppSearchBar
+            android:id="@+id/searchBar"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="Belum ada teman"
-            android:textColor="@color/text_primary"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:gravity="center" />
+            android:layout_margin="8dp"
+            app:searchHint="@string/hint_search" />
 
-        <TextView
-            android:layout_width="260dp"
+        <HorizontalScrollView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Invite teman via PIN di menu Profil untuk mulai chat."
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp"
-            android:gravity="center"
-            android:lineSpacingExtra="3dp" />
+            android:scrollbars="none"
+            android:paddingHorizontal="8dp"
+            android:background="?attr/colorSurface">
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipGroup"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:singleSelection="true"
+                app:selectionRequired="false">
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipSemua"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Semua"
+                    style="@style/Widget.Material3.Chip.Filter" />
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipPending"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Permintaan"
+                    style="@style/Widget.Material3.Chip.Filter" />
+            </com.google.android.material.chip.ChipGroup>
+        </HorizontalScrollView>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnInvite"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="Invite Teman"
-            app:cornerRadius="20dp"
-            android:backgroundTint="@color/upme_green_dark" />
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/list"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingBottom="8dp" />
+
+            <com.upme.messenger.presentation.common.AppEmptyState
+                android:id="@+id/emptyState"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:visibility="gone"
+                app:emptyIcon="@drawable/ic_people"
+                app:emptyTitle="@string/empty_teman_title"
+                app:emptySubtitle="@string/empty_teman_subtitle"
+                app:emptyCta="@string/empty_teman_cta" />
+        </FrameLayout>
     </LinearLayout>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -134,7 +76,7 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
         android:src="@drawable/ic_person"
-        android:contentDescription="Tambah teman"
+        android:contentDescription="@string/empty_teman_cta"
         app:tint="@android:color/white"
         android:backgroundTint="@color/upme_green"
         app:elevation="6dp" />

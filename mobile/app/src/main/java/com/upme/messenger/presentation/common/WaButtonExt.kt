@@ -48,24 +48,36 @@ fun FloatingActionButton.setLoading(isLoading: Boolean, progress: View? = null) 
   if (progress != null) progress.visibility = if (isLoading) View.VISIBLE else View.GONE
 }
 
-// Legacy — keep for compat but delegate to per-view via view param; new code pakai debounceClick
-@Deprecated("Pakai View.debounceClick per-view")
-object ClickGuard {
-  @Deprecated("Pass view: ClickGuard.canClick(view)")
-  fun canClick(intervalMs: Long = 500L): Boolean {
-    val now = SystemClock.elapsedRealtime()
-    // fallback global for callers without view — deprecated
-    val last = lastGlobal
-    if (now - last < intervalMs) return false
-    lastGlobal = now
-    return true
-  }
-  fun canClick(view: View, intervalMs: Long = 500L): Boolean {
-    val now = SystemClock.elapsedRealtime()
-    val last = (view.getTag(KEY_LAST_CLICK) as? Long) ?: 0L
-    if (now - last < intervalMs) return false
-    view.setTag(KEY_LAST_CLICK, now)
-    return true
-  }
-  private var lastGlobal = 0L
+/** Tiny per-owner debouncer untuk kasus non-View (mis. klik item adapter yang membuka navigasi). */
+class PerViewDebounce(private val intervalMs: Long = 500L) {
+    private var last = 0L
+    @Synchronized
+    fun canClick(): Boolean {
+        val now = SystemClock.elapsedRealtime()
+        if (now - last < intervalMs) return false
+        last = now
+        return true
+    }
 }
+
+/** Cek debounce per-view tanpa memasang listener — untuk guard di dalam listener yang sudah ada. */
+fun View.debounceCanClick(intervalMs: Long = 500L): Boolean {
+    val now = SystemClock.elapsedRealtime()
+    val last = (getTag(KEY_LAST_CLICK) as? Long) ?: 0L
+    if (now - last < intervalMs) return false
+    setTag(KEY_LAST_CLICK, now)
+    return true
+}
+
+@Deprecated("Use View.debounceCanClick per-view")
+object ClickGuard {
+    private var lastGlobal = 0L
+    fun canClick(intervalMs: Long = 500L): Boolean {
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastGlobal < intervalMs) return false
+        lastGlobal = now
+        return true
+    }
+    fun canClick(view: View, intervalMs: Long = 500L): Boolean = view.debounceCanClick(intervalMs)
+}
+

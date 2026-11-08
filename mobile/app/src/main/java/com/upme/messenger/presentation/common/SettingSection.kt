@@ -62,13 +62,13 @@ class SettingSection @JvmOverloads constructor(
             letterSpacing = 0.06f
             visibility = GONE
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-                bottomMargin = dp(8)
-                marginStart = dp(4)
+                bottomMargin = resources.dp(8)
+                marginStart = resources.dp(4)
             }
         }
 
         card = MaterialCardView(context).apply {
-            radius = dp(16).toFloat()
+            radius = resources.dp(16).toFloat()
             cardElevation = 0f
             strokeWidth = 0
             setCardBackgroundColor(0xFFFFFFFF.toInt())
@@ -88,12 +88,12 @@ class SettingSection @JvmOverloads constructor(
         val lp = layoutParams
         if (lp is MarginLayoutParams) {
             // ensure bottom spacing between sections when stacked
-            lp.bottomMargin = dp(12)
+            lp.bottomMargin = resources.dp(12)
             layoutParams = lp
         } else {
             // if no parent yet, set via default
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-                bottomMargin = dp(12)
+                bottomMargin = resources.dp(12)
             }
         }
     }

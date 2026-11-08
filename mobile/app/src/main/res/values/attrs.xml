@@ -3,4 +3,17 @@
     <declare-styleable name="AppDivider">
         <attr name="insetStart" format="dimension" />
     </declare-styleable>
+    <declare-styleable name="AppAvatarView">
+        <attr name="avatarSize" format="dimension" />
+        <attr name="avatarTextSize" format="dimension" />
+    </declare-styleable>
+    <declare-styleable name="AppSearchBar">
+        <attr name="searchHint" format="string" />
+    </declare-styleable>
+    <declare-styleable name="AppEmptyState">
+        <attr name="emptyIcon" format="reference" />
+        <attr name="emptyTitle" format="string" />
+        <attr name="emptySubtitle" format="string" />
+        <attr name="emptyCta" format="string" />
+    </declare-styleable>
 </resources>

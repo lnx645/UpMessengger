@@ -15,10 +15,10 @@ import com.upme.messenger.data.auth.AuthPrefs
 import com.upme.messenger.data.crypto.CryptoProvider
 import com.upme.messenger.data.local.MessageEntity
 import com.upme.messenger.domain.usecase.SendMessageUseCase
-import com.upme.messenger.presentation.common.ClickGuard
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import com.upme.messenger.presentation.common.debounceClick
 
 /** Layar bubble : wallpaper + bubble sent/received + input bar rounded, stackFromEnd 60fps. WA-style FAB loading. */
 class ChatDetailFragment : Fragment() {
@@ -77,17 +77,16 @@ class ChatDetailFragment : Fragment() {
 
     val fab = v.findViewById<FloatingActionButton>(R.id.send)
     val progressSend = v.findViewById<ProgressBar>(R.id.progressSend)
-    fab.setOnClickListener {
-      if (!ClickGuard.canClick()) return@setOnClickListener
+    fab.debounceClick {
       val text = input.text.toString()
-      if (text.isBlank()) return@setOnClickListener
+      if (text.isBlank()) return@debounceClick
       if (text.toByteArray().size > 256 * 1024) {
         context?.let { AppToast.show(it, "Pesan terlalu besar (max 256KB)") }
-        return@setOnClickListener
+        return@debounceClick
       }
       if (!authPrefs.isLoggedIn) {
         context?.let { AppToast.show(it, "Belum login") }
-        return@setOnClickListener
+        return@debounceClick
       }
       fab.isEnabled = false; fab.alpha = 0.6f; progressSend.visibility = View.VISIBLE
       viewLifecycleOwner.lifecycleScope.launch {

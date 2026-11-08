@@ -26,7 +26,7 @@
         android:layout_marginStart="24dp" android:layout_marginEnd="24dp"
         android:layout_marginTop="16dp"
         android:text="Judul"
-        android:textColor="#111B21"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="18sp"
         android:textStyle="bold"
         android:fontFamily="@font/manrope"
@@ -37,7 +37,7 @@
         android:layout_marginStart="24dp" android:layout_marginEnd="24dp"
         android:layout_marginTop="8dp"
         android:text="Pesan detail sheet global."
-        android:textColor="#667781"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="13sp"
         android:fontFamily="@font/manrope"
         android:gravity="center"
@@ -65,22 +65,13 @@
             android:id="@+id/btnSheetPrimary"
             android:layout_width="match_parent" android:layout_height="50dp"
             android:text="Kirim"
-            android:textColor="#FFFFFF"
-            android:fontFamily="@font/manrope"
-            android:textSize="14sp"
-            android:backgroundTint="#075E54"
-            app:cornerRadius="14dp" />
+            style="@style/Widget.UpMe.Button.Primary" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSheetSecondary"
-            style="@style/Widget.Material3.Button.OutlinedButton"
+            style="@style/Widget.UpMe.Button.Outlined"
             android:layout_width="match_parent" android:layout_height="50dp"
             android:layout_marginTop="10dp"
-            android:text="Batal"
-            android:textColor="#075E54"
-            android:fontFamily="@font/manrope"
-            android:textSize="14sp"
-            app:strokeColor="#075E54"
-            app:cornerRadius="14dp" />
+            android:text="Batal" />
     </LinearLayout>
 </LinearLayout>

@@ -10,8 +10,11 @@ import com.upme.messenger.data.auth.AuthPrefs
 import com.upme.messenger.presentation.auth.WelcomeFragment
 import com.upme.messenger.presentation.chats.ChatsFragment
 import com.upme.messenger.presentation.detail.ChatDetailFragment
-import com.upme.messenger.presentation.profil.ProfilFragment
-import com.upme.messenger.presentation.teman.TemanFragment
+import com.upme.messenger.presentation.friend.FriendFragment
+import com.upme.messenger.presentation.profile.ProfileFragment
+import com.upme.messenger.presentation.profile.PrivacySecurityFragment
+import com.upme.messenger.presentation.teman.TemanFragment // compat alias
+import com.upme.messenger.presentation.profil.ProfilFragment // compat alias
 import com.upme.messenger.presentation.updates.UpdatesFragment
 
 class MainActivity : AppCompatActivity() {
@@ -46,8 +49,8 @@ class MainActivity : AppCompatActivity() {
       when (item.itemId) {
         R.id.nav_chats -> { show(ChatsFragment(), item.itemId, true); true }
         R.id.nav_updates -> { show(UpdatesFragment(), item.itemId, true); true }
-        R.id.nav_teman -> { show(TemanFragment(), item.itemId, true); true }
-        R.id.nav_profil -> { show(ProfilFragment(), item.itemId, true); true }
+        R.id.nav_teman -> { show(FriendFragment(), item.itemId, true); true }
+        R.id.nav_profil -> { show(ProfileFragment(), item.itemId, true); true }
         else -> false
       }
     }
@@ -91,7 +94,7 @@ class MainActivity : AppCompatActivity() {
       toolbar.visibility = View.GONE
       return
     }
-    val isPrivasi = cur is com.upme.messenger.presentation.profil.PrivasiKeamananFragment
+    val isPrivasi = cur is com.upme.messenger.presentation.profile.PrivacySecurityFragment || cur is com.upme.messenger.presentation.profil.PrivasiKeamananFragment
     val isDetail = cur is ChatDetailFragment
     val isAuth = cur is WelcomeFragment || cur is com.upme.messenger.presentation.auth.PhoneFragment || cur is com.upme.messenger.presentation.auth.OtpFragment || cur is com.upme.messenger.presentation.auth.SetupProfilFragment
     if (isAuth) {

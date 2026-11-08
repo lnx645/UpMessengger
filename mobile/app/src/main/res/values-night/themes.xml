@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.UpMessenger" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/upme_green_dark</item>
+        <item name="colorPrimaryContainer">@color/upme_green_light</item>
+        <item name="colorOnPrimary">@android:color/white</item>
+        <item name="colorSecondary">@color/upme_green</item>
+        <item name="colorSurface">@color/upme_dark_surface</item>
+        <item name="colorOnSurface">@android:color/white</item>
+        <item name="colorOnSurfaceVariant">@color/text_time</item>
+        <item name="colorOutlineVariant">@color/divider_dark</item>
+        <item name="android:statusBarColor">@color/chat_wallpaper_dark</item>
+        <item name="android:navigationBarColor">@color/upme_dark_surface</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:fontFamily">@font/manrope</item>
+        <item name="fontFamily">@font/manrope</item>
+    </style>
+</resources>

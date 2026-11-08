@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Legacy IDs for backward compat after English rename + new AppEmptyState layout -->
+    <item type="id" name="inputSearch" />
+    <item type="id" name="btnInvite" />
+    <item type="id" name="empty" />
+    <item type="id" name="profilInitial" />
+    <item type="id" name="profilName" />
+    <item type="id" name="imgProfilAvatar" />
+    <item type="id" name="rowProfilDetail" />
+</resources>

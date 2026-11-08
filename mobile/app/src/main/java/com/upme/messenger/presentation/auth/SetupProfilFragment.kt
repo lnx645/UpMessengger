@@ -13,10 +13,10 @@ import com.google.android.material.button.MaterialButton
 import com.upme.messenger.R
 import com.upme.messenger.data.auth.AuthPrefs
 import com.upme.messenger.presentation.avatar.UserAvatarCroppingFragment
-import com.upme.messenger.presentation.common.ClickGuard
 import com.upme.messenger.presentation.common.setLoading
 import coil.load
 import java.io.File
+import com.upme.messenger.presentation.common.debounceClick
 
 class SetupProfilFragment : Fragment() {
   private var avatarUri: Uri? = null
@@ -46,8 +46,7 @@ class SetupProfilFragment : Fragment() {
       v.findViewById<TextView>(R.id.txtInitial).visibility = View.GONE
     }
     // avatar click -> pick
-    v.findViewById<View>(R.id.avatarContainer)?.setOnClickListener {
-      if (!ClickGuard.canClick()) return@setOnClickListener
+    v.findViewById<View>(R.id.avatarContainer)?.debounceClick(500L) {
       pickLauncher.launch("image/*")
     }
     // result from cropping fragment
@@ -68,10 +67,9 @@ class SetupProfilFragment : Fragment() {
     })
     val btn = v.findViewById<MaterialButton>(R.id.btnSelesai)
     val progress = v.findViewById<ProgressBar>(R.id.progressSelesai)
-    btn.setOnClickListener {
-      if (!ClickGuard.canClick()) return@setOnClickListener
+    btn.debounceClick(500L) {
       val nama = input.text.toString().trim()
-      if (nama.length < 2) { context?.let { AppToast.show(it, "Nama minimal 2 huruf") }; return@setOnClickListener }
+      if (nama.length < 2) { context?.let { AppToast.show(it, "Nama minimal 2 huruf") }; return@debounceClick }
       btn.setLoading(true, progress)
       AuthPrefs(requireContext()).name = nama
       context?.let { AppToast.show(it, "Selamat datang, $nama!") }

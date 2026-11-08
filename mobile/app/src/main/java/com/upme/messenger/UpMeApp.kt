@@ -6,6 +6,7 @@ class UpMeApp : Application() {
   val locator by lazy { ServiceLocator(this) }
   override fun onCreate() {
     super.onCreate()
-    // Sengaja kosong: inisialisasi Room/TCP/Signal dilakukan lazy saat pertama dipakai.
+    // Flag debug saja (murah) — Room/TCP/Signal tetap lazy saat pertama dipakai.
+    com.upme.messenger.util.HostUtil.init(this)
   }
 }

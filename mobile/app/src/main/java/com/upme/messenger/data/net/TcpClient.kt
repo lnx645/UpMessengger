@@ -122,6 +122,31 @@ class TcpClient(private val dao: MessageDao, private val host: String = "127.0.0
     return m
   }
 
+  /** Cari user by PIN/nama di server (0x38). Return list {pin,name,phone}. Min query 2 char (server enforce). */
+  suspend fun searchTeman(token: String, query: String): List<Map<String, String>> = withContext(Dispatchers.IO) {
+    if (query.trim().length < 2) return@withContext emptyList()
+    return@withContext try {
+      val payload = JSONObject().put("token", token).put("query", query.trim()).toString().toByteArray()
+      val (t, body) = requestOnce(payload, 0x38)
+      if (t != 0x38) return@withContext emptyList()
+      val arr = JSONObject(String(body)).optJSONArray("results") ?: return@withContext emptyList()
+      (0 until arr.length()).mapNotNull {
+        val o = arr.optJSONObject(it) ?: return@mapNotNull null
+        mapOf("pin" to o.optString("pin", ""), "name" to o.optString("name", ""), "phone" to o.optString("phone", ""))
+      }.filter { it["pin"]?.isNotBlank() == true }
+    } catch (_: Exception) { emptyList() }
+  }
+
+  /** Resolve PIN -> nomor (0x39). Butuh auth; dipakai verifikasi, bukan enumerasi. */
+  suspend fun pinToPhone(token: String, pin: String): String? = withContext(Dispatchers.IO) {
+    return@withContext try {
+      val payload = JSONObject().put("token", token).put("pin", pin.trim().uppercase()).toString().toByteArray()
+      val (t, body) = requestOnce(payload, 0x39)
+      if (t != 0x39) return@withContext null
+      JSONObject(String(body)).optString("phone", null)?.takeIf { it.isNotBlank() }
+    } catch (_: Exception) { null }
+  }
+
   suspend fun acceptInvite(phone: String, token: String, fromPin: String): Boolean = withContext(Dispatchers.IO) {
     try {
       val payload = JSONObject().put("phone", phone).put("token", token).put("from_pin", fromPin).toString().toByteArray()

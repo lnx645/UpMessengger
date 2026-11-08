@@ -3,6 +3,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import com.upme.messenger.presentation.common.AppAvatarView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -31,7 +32,7 @@ class ChatAdapter(private val onClick: ((ChatItem) -> Unit)? = null) : ListAdapt
     }
 
     class Holder(v: View) : RecyclerView.ViewHolder(v) {
-        val avatarText: TextView = v.findViewById(R.id.avatarText)
+        val avatar: AppAvatarView = v.findViewById(R.id.avatar)
         val name: TextView = v.findViewById(R.id.name)
         val time: TextView = v.findViewById(R.id.time)
         val preview: TextView = v.findViewById(R.id.preview)
@@ -44,7 +45,7 @@ class ChatAdapter(private val onClick: ((ChatItem) -> Unit)? = null) : ListAdapt
 
     override fun onBindViewHolder(h: Holder, pos: Int) {
         val item = getItem(pos)
-        h.avatarText.text = item.initial
+        h.avatar.bind(item.id, item.name)
         h.name.text = item.name
         h.time.text = item.time
         h.preview.text = item.preview

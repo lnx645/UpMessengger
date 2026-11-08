@@ -98,8 +98,8 @@ class SettingItem @JvmOverloads constructor(
     init {
         orientation = HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
-        minimumHeight = dp(56)
-        setPadding(dp(16), 0, dp(16), 0)
+        minimumHeight = resources.dp(56)
+        setPadding(resources.dp(16), 0, resources.dp(16), 0)
         isClickable = true
         isFocusable = true
         // Ripple foreground — Material selectable
@@ -107,16 +107,16 @@ class SettingItem @JvmOverloads constructor(
         context.theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
         foreground = ResourcesCompat.getDrawable(resources, outValue.resourceId, context.theme)
 
-        val manrope = FontCache.regular(context)
-        val manropeMedium = FontCache.medium(context)
+        val manrope = FontCacheShared.regular(context)
+        val manropeMedium = FontCacheShared.medium(context)
 
         // Icon box 36dp, rounded 10dp
         iconBox = FrameLayout(context).apply {
-            layoutParams = LayoutParams(dp(36), dp(36))
+            layoutParams = LayoutParams(resources.dp(36), resources.dp(36))
             updateIconBg()
         }
         iconView = ImageView(context).apply {
-            layoutParams = FrameLayout.LayoutParams(dp(20), dp(20), Gravity.CENTER)
+            layoutParams = FrameLayout.LayoutParams(resources.dp(20), resources.dp(20), Gravity.CENTER)
         }
         iconBox.addView(iconView)
 
@@ -124,7 +124,7 @@ class SettingItem @JvmOverloads constructor(
             orientation = VERTICAL
             gravity = Gravity.CENTER_VERTICAL
             layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f).apply {
-                marginStart = dp(14)
+                marginStart = resources.dp(14)
             }
         }
 
@@ -142,7 +142,7 @@ class SettingItem @JvmOverloads constructor(
             maxLines = 1
             visibility = GONE
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-                topMargin = dp(2)
+                topMargin = resources.dp(2)
             }
         }
         textContainer.addView(txtTitle)
@@ -156,12 +156,12 @@ class SettingItem @JvmOverloads constructor(
             visibility = GONE
             gravity = Gravity.CENTER_VERTICAL
             layoutParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
-                marginStart = dp(8)
+                marginStart = resources.dp(8)
             }
         }
 
         chevronView = ImageView(context).apply {
-            layoutParams = LayoutParams(dp(18), dp(18)).apply { marginStart = dp(8) }
+            layoutParams = LayoutParams(resources.dp(18), resources.dp(18)).apply { marginStart = resources.dp(8) }
             setImageResource(R.drawable.ic_chevron)
             alpha = 0.9f
         }
@@ -171,8 +171,7 @@ class SettingItem @JvmOverloads constructor(
         addView(trailingTextView)
         addView(chevronView)
 
-        super.setOnClickListener {
-            if (!ClickGuard.canClick(350)) return@setOnClickListener
+        debounceClick(350L) {
             onClick?.invoke()
         }
     }
@@ -185,26 +184,12 @@ class SettingItem @JvmOverloads constructor(
     private fun updateIconBg() {
         val d = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp(10).toFloat()
+            cornerRadius = context.dp(10).toFloat()
             setColor(iconBgColor)
         }
         iconBox.background = d
     }
 
-    // dp via Dimens.kt
-
-    private object FontCache {
-        var regular: Typeface? = null
-        var medium: Typeface? = null
-        fun regular(c: Context): Typeface? {
-            if (regular == null) regular = ResourcesCompat.getFont(c, R.font.manrope_regular)
-            return regular
-        }
-        fun medium(c: Context): Typeface? {
-            if (medium == null) medium = ResourcesCompat.getFont(c, R.font.manrope_medium)
-            return medium
-        }
-    }
 
     /** Preset warna icon selaras drawable bg_icon_* dan colors.xml. */
     object IconBg {

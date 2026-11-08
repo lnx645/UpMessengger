@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">UpMessenger</string>
+    <string name="hint_search">Cari teman</string>
+    <string name="cd_avatar">Avatar %1$s</string>
+    <string name="cd_avatar_default">Avatar teman</string>
+    <string name="cd_clear_search">Bersihkan pencarian</string>
+    <string name="empty_teman_title">Belum ada teman</string>
+    <string name="empty_teman_subtitle">Invite teman via PIN di menu Profil untuk mulai chat.</string>
+    <string name="empty_teman_cta">Invite Teman</string>
+    <string name="empty_chats_title">Belum ada chat</string>
+    <string name="empty_chats_subtitle">Mulai chat dengan teman via PIN. Ketuk tab PIN Saya untuk invite.</string>
+</resources>

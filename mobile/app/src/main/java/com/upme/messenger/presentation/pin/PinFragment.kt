@@ -10,8 +10,9 @@ import com.upme.messenger.presentation.common.AppToast
 import androidx.fragment.app.Fragment
 import com.google.android.material.button.MaterialButton
 import com.upme.messenger.R
-import com.upme.messenger.presentation.common.ClickGuard
+import com.upme.messenger.presentation.common.debounceClick
 import com.upme.messenger.presentation.common.setLoading
+import com.upme.messenger.util.PinValidator
 
 /** Layar PIN /BBM: card PIN besar + salin/bagikan + invite card. WA-style loading + debounce. */
 class PinFragment : Fragment() {
@@ -21,7 +22,7 @@ class PinFragment : Fragment() {
     val prefs = requireContext().getSharedPreferences("upme", 0)
     var pin = prefs.getString("pin", null)
     if (pin == null) {
-      pin = (1..8).map { "0123456789ABCDEF".random() }.joinToString("")
+      pin = PinValidator.generate()
       prefs.edit().putString("pin", pin).apply()
     }
     val pretty = pin.chunked(4).joinToString(" ")
@@ -34,16 +35,14 @@ class PinFragment : Fragment() {
     val btnInvite = v.findViewById<MaterialButton>(R.id.invite)
     val progressInvite = v.findViewById<ProgressBar>(R.id.progressInvite)
 
-    btnCopy.setOnClickListener {
-      if (!ClickGuard.canClick()) return@setOnClickListener
+    btnCopy.debounceClick {
       btnCopy.setLoading(true, progressCopy)
       val cm = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
       cm.setPrimaryClip(ClipData.newPlainText("PIN", pin))
       context?.let { AppToast.show(it, "PIN $pretty disalin") }
       btnCopy.postDelayed({ btnCopy.setLoading(false, progressCopy) }, 600)
     }
-    btnShare.setOnClickListener {
-      if (!ClickGuard.canClick()) return@setOnClickListener
+    btnShare.debounceClick {
       btnShare.setLoading(true, progressShare)
       val intent = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
@@ -53,12 +52,11 @@ class PinFragment : Fragment() {
       btnShare.postDelayed({ btnShare.setLoading(false, progressShare) }, 800)
     }
 
-    btnInvite.setOnClickListener {
-      if (!ClickGuard.canClick()) return@setOnClickListener
+    btnInvite.debounceClick {
       val t = v.findViewById<EditText>(R.id.pinInput).text.toString().trim().uppercase().replace(" ", "")
       if (t.length != 8 || !t.all { it in "0123456789ABCDEF" }) {
         context?.let { AppToast.show(it, "PIN harus 8 karakter hex (0-9, A-F)") }
-        return@setOnClickListener
+        return@debounceClick
       }
       btnInvite.setLoading(true, progressInvite)
       // Simulasi async invite (WA-style: spinner lalu toast)

@@ -1,12 +1,13 @@
 package com.upme.messenger.presentation.common
 
+import android.content.Context
 import android.content.res.Resources
 import android.util.TypedValue
 
-val Int.dp: Int get() = (this * Resources.getSystem().displayMetrics.density).toInt()
-val Float.dp: Float get() = this * Resources.getSystem().displayMetrics.density
-fun Int.dpF(): Float = this * Resources.getSystem().displayMetrics.density
-
-fun dp(v: Float): Float = v * Resources.getSystem().displayMetrics.density
-fun dp(v: Int): Int = (v * Resources.getSystem().displayMetrics.density).toInt()
-fun dpToPx(v: Float, res: Resources): Int = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, res.displayMetrics).toInt()
+/** Single canonical dp API — selalu pakai context/resources agar ikut density & font-scale config. */
+fun Context.dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
+fun Context.dpF(v: Float): Float = v * resources.displayMetrics.density
+fun Resources.dp(v: Int): Int = (v * displayMetrics.density).toInt()
+fun Resources.dpF(v: Float): Float = v * displayMetrics.density
+fun dpPx(v: Float, res: Resources): Int =
+    TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, res.displayMetrics).toInt()

@@ -43,13 +43,11 @@ class ConfirmDialog(
             window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         }
 
-        btnPos.setOnClickListener {
-            if (!ClickGuard.canClick(400)) return@setOnClickListener
+        btnPos.debounceClick(400L) {
             dialog?.dismiss()
             onPositive()
         }
-        btnNeg.setOnClickListener {
-            if (!ClickGuard.canClick(400)) return@setOnClickListener
+        btnNeg.debounceClick(400L) {
             dialog?.dismiss()
             onNegative?.invoke()
         }

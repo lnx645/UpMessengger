@@ -17,11 +17,11 @@ import com.google.android.material.button.MaterialButton
 import com.upme.messenger.R
 import com.upme.messenger.data.auth.AuthRepository
 import com.upme.messenger.data.auth.AuthPrefs
-import com.upme.messenger.presentation.common.ClickGuard
 import com.upme.messenger.presentation.common.AppSheet
 import com.upme.messenger.presentation.common.ConfirmDialog
 import com.upme.messenger.presentation.common.setLoading
 import kotlinx.coroutines.launch
+import com.upme.messenger.presentation.common.debounceClick
 
 class OtpFragment : Fragment() {
   private val repo by lazy { AuthRepository() }
@@ -124,11 +124,10 @@ class OtpFragment : Fragment() {
     requestSmsPermissionIfNeeded()
     registerSmsReceiver()
 
-    btnVerif.setOnClickListener {
-      if (!ClickGuard.canClick()) return@setOnClickListener
+    btnVerif.debounceClick(500L) {
       val otp = collectOtp()
-      if (otp.length != 6) { context?.let { AppToast.show(it, "Lengkapi 6 digit OTP") }; return@setOnClickListener }
-      if (remainingExpiryMs <= 0) { context?.let { AppToast.show(it, "OTP kedaluwarsa, silakan kirim ulang") }; return@setOnClickListener }
+      if (otp.length != 6) { context?.let { AppToast.show(it, "Lengkapi 6 digit OTP") }; return@debounceClick }
+      if (remainingExpiryMs <= 0) { context?.let { AppToast.show(it, "OTP kedaluwarsa, silakan kirim ulang") }; return@debounceClick }
       btnVerif.setLoading(true, progressVerif)
       showLoadingDialog("Memverifikasi...")
       viewLifecycleOwner.lifecycleScope.launch {
@@ -188,8 +187,7 @@ class OtpFragment : Fragment() {
     }
 
     // WA-style: Kirim ulang via global Sheet — muncul sheet dulu baru kirim
-    btnResend.setOnClickListener {
-      if (!ClickGuard.canClick()) return@setOnClickListener
+    btnResend.debounceClick(500L) {
       AppSheet.showResendOtp(requireContext(), phone, remainingResendMs, isResendCooling) {
         // konfirmasi di sheet -> baru kirim
         btnResend.isEnabled = false; btnResend.alpha = 0.5f
@@ -218,8 +216,7 @@ class OtpFragment : Fragment() {
     }
 
     // WA-style: Konfirmasi custom reusable (bukan bawaan AlertDialog)
-    v.findViewById<TextView>(R.id.btnGantiNomor).setOnClickListener {
-      if (!ClickGuard.canClick()) return@setOnClickListener
+    v.findViewById<TextView>(R.id.btnGantiNomor).debounceClick(500L) {
       ConfirmDialog.showGantiNomor(requireContext(), phone) {
         resendTimer?.cancel()
         expiryTimer?.cancel()

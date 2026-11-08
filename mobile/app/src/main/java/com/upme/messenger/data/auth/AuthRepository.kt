@@ -6,18 +6,19 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.net.Socket
 import javax.net.ssl.SSLSocketFactory
+import com.upme.messenger.util.HostUtil
 
 /** WhatsApp flow: requestOtp (0x10) -> verifyOtp (0x11) -> [0x14 2FA jika aktif] -> auth (0x02). JWT RS256. */
 class AuthRepository(private val host: String = "127.0.0.1", private val port: Int = 5222) {
 
   private suspend fun frame(type: Int, payload: ByteArray): Pair<Int, ByteArray> = withContext(Dispatchers.IO) {
     // Fail-closed: TLS only jika host adalah TLS host; tidak pernah downgrade ke cleartext
-    val isDevHost = host == "127.0.0.1"
+    val isDevHost = HostUtil.isDevHost(host)
     val s = if (isDevHost) {
       Socket(host, port).apply { soTimeout = 8000 }
     } else {
       // Prod: hanya TLS, tidak ada fallback cleartext
-      val hosts = listOf(host, "192.168.70.92", "192.168.70.93", "192.168.70.127").distinct()
+      val hosts = HostUtil.resolveHosts(host)
       var last: Socket? = null
       var err: Exception? = null
       for (h in hosts) {

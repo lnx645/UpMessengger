@@ -40,6 +40,13 @@
                         android:layout_height="96dp"
                         android:background="@drawable/bg_avatar_parrot" />
 
+                    <ImageView
+                        android:id="@+id/imgProfilAvatar"
+                        android:layout_width="96dp"
+                        android:layout_height="96dp"
+                        android:scaleType="centerCrop"
+                        android:visibility="gone" />
+
                     <TextView
                         android:id="@+id/profilInitial"
                         android:layout_width="96dp"

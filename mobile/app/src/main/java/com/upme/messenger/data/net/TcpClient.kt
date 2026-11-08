@@ -6,13 +6,15 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 import javax.net.ssl.SSLSocketFactory
 import java.net.Socket
+import com.upme.messenger.util.HostUtil
 /** TCP + TLS, auth wajib via token (frame 0x02), heartbeat 30s, reconnect exponential backoff. Prod: port 5222. */
 class TcpClient(private val dao: MessageDao, private val host: String = "127.0.0.1", private val port: Int = 5222) {
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+  fun close() { scope.cancel() }
+
   private fun openSocket(): Socket {
-    // Dev: adb reverse 127.0.0.1 plain. Prod: TLS only, fail-closed tanpa fallback cleartext
-    return if (host == "127.0.0.1") {
+    return if (HostUtil.isDevHost(host)) {
       Socket(host, port).apply { soTimeout = 4000 }
     } else {
       SSLSocketFactory.getDefault().createSocket(host, port).apply { soTimeout = 4000 }
@@ -42,7 +44,7 @@ class TcpClient(private val dao: MessageDao, private val host: String = "127.0.0
     scope.launch {
       var delayMs = 1000L
       var attempts = 0
-      while (attempts < 5) {
+      while (isActive && attempts < 5) {
         var s: Socket? = null
         try {
           s = openSocket()
@@ -94,8 +96,8 @@ class TcpClient(private val dao: MessageDao, private val host: String = "127.0.0
     } finally { try { s.close() } catch (_: Exception) {} }
   }
 
-  fun inviteTeman(phone: String, token: String, targetPin: String): String? {
-    return try {
+  suspend fun inviteTeman(phone: String, token: String, targetPin: String): String? = withContext(Dispatchers.IO) {
+    try {
       val payload = JSONObject().put("phone", phone).put("token", token).put("target_pin", targetPin).toString().toByteArray()
       val (t, body) = requestOnce(payload, 0x32)
       val json = JSONObject(String(body))
@@ -103,13 +105,13 @@ class TcpClient(private val dao: MessageDao, private val host: String = "127.0.0
     } catch (_: Exception) { null }
   }
 
-  fun syncPending(phone: String, token: String): List<Map<String, String>> {
-    return try {
+  suspend fun syncPending(phone: String, token: String): List<Map<String, String>> = withContext(Dispatchers.IO) {
+    try {
       val payload = JSONObject().put("phone", phone).put("token", token).toString().toByteArray()
       val (t, body) = requestOnce(payload, 0x34)
       if (t == 0x34) {
-        val arr = JSONObject(String(body)).optJSONArray("pending") ?: return emptyList()
-        (0 until arr.length()).map { arr.getJSONObject(it).toMapString() }
+        val arr = JSONObject(String(body)).optJSONArray("pending") ?: emptyList<Map<String, String>>().let { org.json.JSONArray() }
+        if (arr.length() == 0) emptyList() else (0 until arr.length()).map { arr.getJSONObject(it).toMapString() }
       } else emptyList()
     } catch (_: Exception) { emptyList() }
   }
@@ -120,24 +122,24 @@ class TcpClient(private val dao: MessageDao, private val host: String = "127.0.0
     return m
   }
 
-  fun acceptInvite(phone: String, token: String, fromPin: String): Boolean {
-    return try {
+  suspend fun acceptInvite(phone: String, token: String, fromPin: String): Boolean = withContext(Dispatchers.IO) {
+    try {
       val payload = JSONObject().put("phone", phone).put("token", token).put("from_pin", fromPin).toString().toByteArray()
       val (t, _) = requestOnce(payload, 0x35)
       t == 0x35
     } catch (_: Exception) { false }
   }
 
-  fun rejectInvite(phone: String, token: String, fromPin: String): Boolean {
-    return try {
+  suspend fun rejectInvite(phone: String, token: String, fromPin: String): Boolean = withContext(Dispatchers.IO) {
+    try {
       val payload = JSONObject().put("phone", phone).put("token", token).put("from_pin", fromPin).toString().toByteArray()
       val (t, _) = requestOnce(payload, 0x36)
       t == 0x36
     } catch (_: Exception) { false }
   }
 
-  fun deleteTeman(phone: String, token: String, pin: String, block: Boolean): Boolean {
-    return try {
+  suspend fun deleteTeman(phone: String, token: String, pin: String, block: Boolean): Boolean = withContext(Dispatchers.IO) {
+    try {
       val payload = JSONObject().put("phone", phone).put("token", token).put("pin", pin).put("block", block).toString().toByteArray()
       val (t, _) = requestOnce(payload, 0x37)
       t == 0x37

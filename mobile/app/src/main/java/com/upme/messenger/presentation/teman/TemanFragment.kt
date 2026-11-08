@@ -9,6 +9,8 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -26,9 +28,14 @@ import com.upme.messenger.presentation.common.AppToast
 import com.upme.messenger.presentation.common.ClickGuard
 import com.upme.messenger.presentation.common.ConfirmDialog
 import com.upme.messenger.presentation.common.setLoading
+import com.upme.messenger.util.PinValidator
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import androidx.lifecycle.repeatOnLifecycle
 
 class TemanFragment : Fragment() {
   private lateinit var myAdapter: ChatAdapter
@@ -37,6 +44,20 @@ class TemanFragment : Fragment() {
   private var currentFilter: String = ""
   private var showPendingOnly: Boolean = false
   private var pendingAdapter: ChatAdapter? = null
+  private var autoRefreshJob: Job? = null
+  private var searchWatcher: TextWatcher? = null
+  private val trackedDialogs = mutableSetOf<BottomSheetDialog>()
+  private val qrLauncher = registerForActivityResult(ScanContract()) { result ->
+    val content = result.contents ?: return@registerForActivityResult
+    // QR contains upme:<hash>:<pin> -> extract pin 8 hex
+    val raw = content.substringAfterLast(":").trim().uppercase().replace(" ", "")
+    if (PinValidator.isValid(raw)) {
+      view?.findViewById<EditText>(R.id.inputPinInvite)?.setText(raw)
+      context?.let { AppToast.show(it, "PIN ${PinValidator.pretty(raw)} terdeteksi") }
+    } else {
+      context?.let { AppToast.show(it, "QR tidak valid") }
+    }
+  }
 
   private val pickContact = registerForActivityResult(ActivityResultContracts.PickContact()) { uri ->
     if (uri == null) return@registerForActivityResult
@@ -85,47 +106,19 @@ class TemanFragment : Fragment() {
     val empty = v.findViewById<LinearLayout>(R.id.empty)
     list.apply { layoutManager = LinearLayoutManager(context); adapter = myAdapter; setHasFixedSize(true); setItemViewCacheSize(16) }
 
-    fun refresh() {
-      viewLifecycleOwner.lifecycleScope.launch {
-        val db = (requireActivity().application as UpMeApp).locator.db
-        if (showPendingOnly) {
-          val pendings = db.pendingDao().all()
-          if (pendings.isEmpty()) {
-            empty.visibility = View.VISIBLE
-            empty.findViewById<TextView>(android.R.id.text1)?.let { } // keep
-            list.adapter = pendingAdapter
-            pendingAdapter?.submitList(emptyList())
-          } else {
-            empty.visibility = View.GONE
-            list.adapter = pendingAdapter
-            val items = pendings.map {
-              ChatItem(it.pin, it.name, "PIN: ${it.pin.chunked(4).joinToString(" ")}", "Baru", "READ", 0, it.name.take(1).uppercase())
-            }
-            pendingAdapter?.submitList(items)
-            myAdapter.submitList(emptyList())
-          }
-        } else {
-          list.adapter = myAdapter
-          val teman = if (currentFilter.isBlank()) db.temanDao().all() else db.temanDao().search(currentFilter.uppercase())
-          if (teman.isEmpty()) {
-            empty.visibility = View.VISIBLE
-            myAdapter.submitList(emptyList())
-          } else {
-            empty.visibility = View.GONE
-            val items = teman.map {
-              ChatItem(it.pin, it.name, "PIN: ${it.pin.chunked(4).joinToString(" ")}", "Baru", "READ", 0, it.name.take(1).uppercase())
-            }
-            myAdapter.submitList(items)
-          }
+    refresh()
+    // Auto-refresh aman: polling 5s hanya saat RESUMED, auto-cancel saat pause (no leak via repeatOnLifecycle)
+    viewLifecycleOwner.lifecycleScope.launch {
+      viewLifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
+        while (isActive) {
+          delay(5000)
+          if (isAdded) refresh()
         }
       }
     }
-    refresh()
-    parentFragmentManager.addOnBackStackChangedListener { refresh() }
-    v.viewTreeObserver.addOnWindowFocusChangeListener { hasFocus -> if (hasFocus) refresh() }
 
     val inputSearch = v.findViewById<EditText>(R.id.inputSearch)
-    inputSearch.addTextChangedListener(object : TextWatcher {
+    searchWatcher = object : TextWatcher {
       override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
       override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
       override fun afterTextChanged(s: Editable?) {
@@ -134,21 +127,10 @@ class TemanFragment : Fragment() {
           delay(300)
           currentFilter = s?.toString()?.trim() ?: ""
           refresh()
-          // if query >=2, also server search 0x38 async (fire-and-forget toast)
-          if (currentFilter.length >= 2) {
-            try {
-              val app = requireActivity().application as UpMeApp
-              val authPrefs = com.upme.messenger.data.auth.AuthPrefs(requireContext())
-              val token = authPrefs.token
-              val phone = authPrefs.phone
-              if (token != null && phone != null) {
-                // fire server search via raw TCP (best-effort)
-              }
-            } catch (_: Exception) {}
-          }
         }
       }
-    })
+    }
+    inputSearch.addTextChangedListener(searchWatcher)
 
     val chipSemua = v.findViewById<Chip>(R.id.chipSemua)
     val chipPending = v.findViewById<Chip>(R.id.chipPending)
@@ -170,8 +152,72 @@ class TemanFragment : Fragment() {
     v.findViewById<FloatingActionButton>(R.id.fabAdd)?.setOnClickListener { showInviteSheet() }
   }
 
+  override fun onResume() {
+    super.onResume()
+    refresh()
+  }
+
+  override fun onPause() {
+    super.onPause()
+    autoRefreshJob?.cancel()
+  }
+
+  override fun onDestroyView() {
+    view?.findViewById<EditText>(R.id.inputSearch)?.removeTextChangedListener(searchWatcher)
+    searchWatcher = null
+    view?.findViewById<RecyclerView>(R.id.list)?.adapter = null
+    pendingSheet?.dismiss(); pendingSheet = null
+    trackedDialogs.forEach { try { it.dismiss() } catch (_: Exception) {} }
+    trackedDialogs.clear()
+    autoRefreshJob?.cancel()
+    searchJob?.cancel()
+    super.onDestroyView()
+  }
+
+  private fun refresh() {
+    if (!isAdded || view == null) return
+    lifecycleScope.launch {
+      val db = try { (requireActivity().application as UpMeApp).locator.db } catch (_: Exception) { return@launch }
+      val rv = view?.findViewById<RecyclerView>(R.id.list) ?: return@launch
+      val emptyLayout = view?.findViewById<LinearLayout>(R.id.empty) ?: return@launch
+      if (showPendingOnly) {
+        val pendings = db.pendingDao().all()
+        if (pendings.isEmpty()) {
+          emptyLayout.visibility = View.VISIBLE
+          rv.adapter = pendingAdapter
+          pendingAdapter?.submitList(emptyList())
+        } else {
+          emptyLayout.visibility = View.GONE
+          rv.adapter = pendingAdapter
+          val items = pendings.map {
+            // Use real name if available, else pin
+            val displayName = it.name.takeIf { n -> n.isNotBlank() && !n.startsWith("Teman ") } ?: "Teman ${PinValidator.pretty(it.pin)}"
+            ChatItem(it.pin, displayName, "PIN: ${PinValidator.pretty(it.pin)}", "", "", 0, displayName.take(1).uppercase())
+          }
+          pendingAdapter?.submitList(items)
+          myAdapter.submitList(emptyList())
+        }
+      } else {
+        rv.adapter = myAdapter
+        val teman = if (currentFilter.isBlank()) db.temanDao().all() else db.temanDao().search(currentFilter.uppercase())
+        if (teman.isEmpty()) {
+          emptyLayout.visibility = View.VISIBLE
+          myAdapter.submitList(emptyList())
+        } else {
+          emptyLayout.visibility = View.GONE
+          val items = teman.map {
+            val displayName = it.name.takeIf { n -> n.isNotBlank() && !n.startsWith("Teman ") } ?: it.name
+            // For teman, show name and PIN without chat tick/time
+            ChatItem(it.pin, displayName, "📌 PIN: ${PinValidator.pretty(it.pin)}", "", "", 0, displayName.take(1).uppercase())
+          }
+          myAdapter.submitList(items)
+        }
+      }
+    }
+  }
+
   private fun syncPendingFromServer() {
-    viewLifecycleOwner.lifecycleScope.launch {
+    lifecycleScope.launch {
       try {
         val app = requireActivity().application as UpMeApp
         val authPrefs = com.upme.messenger.data.auth.AuthPrefs(requireContext())
@@ -190,7 +236,7 @@ class TemanFragment : Fragment() {
     val dialog = BottomSheetDialog(ctx, R.style.ThemeOverlay_App_BottomSheet)
     val sheet = layoutInflater.inflate(R.layout.layout_sheet_global, null)
     sheet.findViewById<TextView>(R.id.txtSheetTitle).text = item.name
-    sheet.findViewById<TextView>(R.id.txtSheetMessage).text = "PIN ${item.id.chunked(4).joinToString(" ")}"
+    sheet.findViewById<TextView>(R.id.txtSheetMessage).text = "PIN ${PinValidator.pretty(item.id)}"
     val primary = sheet.findViewById<MaterialButton>(R.id.btnSheetPrimary)
     val secondary = sheet.findViewById<MaterialButton>(R.id.btnSheetSecondary)
     primary.text = "Chat"
@@ -201,8 +247,8 @@ class TemanFragment : Fragment() {
     }
     secondary.setOnClickListener {
       dialog.dismiss()
-      ConfirmDialog(ctx, "Hapus teman?", "Hapus ${item.name} (${item.id.chunked(4).joinToString(" ")}) dari daftar teman?", "Hapus", "Batal", onPositive = {
-        viewLifecycleOwner.lifecycleScope.launch {
+      ConfirmDialog(ctx, "Hapus teman?", "Hapus ${item.name} (${PinValidator.pretty(item.id)}) dari daftar teman?", "Hapus", "Batal", onPositive = {
+        lifecycleScope.launch {
           val db = (requireActivity().application as UpMeApp).locator.db
           db.temanDao().delete(item.id)
           context?.let { AppToast.show(it, "Teman dihapus") }
@@ -216,7 +262,7 @@ class TemanFragment : Fragment() {
           } catch (_: Exception) {}
           view?.findViewById<RecyclerView>(R.id.list)?.let { _ ->
             val all = db.temanDao().all()
-            myAdapter.submitList(all.map { ChatItem(it.pin, it.name, "PIN: ${it.pin.chunked(4).joinToString(" ")}", "Baru", "READ", 0, it.name.take(1).uppercase()) })
+            myAdapter.submitList(all.map { ChatItem(it.pin, it.name, "PIN: ${PinValidator.pretty(it.pin)}", "Baru", "READ", 0, it.name.take(1).uppercase()) })
             view?.findViewById<LinearLayout>(R.id.empty)?.visibility = if (all.isEmpty()) View.VISIBLE else View.GONE
           }
         }
@@ -225,7 +271,7 @@ class TemanFragment : Fragment() {
     // Add blokir as extra via long-press secondary long?
     sheet.findViewById<TextView>(R.id.txtSheetMessage).setOnLongClickListener {
       ConfirmDialog(ctx, "Blokir PIN?", "Blokir ${item.id} agar tidak bisa invite lagi?", "Blokir", "Batal", onPositive = {
-        viewLifecycleOwner.lifecycleScope.launch {
+        lifecycleScope.launch {
           val db = (requireActivity().application as UpMeApp).locator.db
           db.temanDao().delete(item.id)
           try {
@@ -236,7 +282,7 @@ class TemanFragment : Fragment() {
           context?.let { AppToast.show(it, "PIN diblokir") }
           view?.findViewById<RecyclerView>(R.id.list)?.let {
             val all = db.temanDao().all()
-            myAdapter.submitList(all.map { ChatItem(it.pin, it.name, "PIN: ${it.pin.chunked(4).joinToString(" ")}", "Baru", "READ", 0, it.name.take(1).uppercase()) })
+            myAdapter.submitList(all.map { ChatItem(it.pin, it.name, "PIN: ${PinValidator.pretty(it.pin)}", "Baru", "READ", 0, it.name.take(1).uppercase()) })
           }
         }
       }).show()
@@ -244,6 +290,7 @@ class TemanFragment : Fragment() {
     }
     dialog.setContentView(sheet)
     dialog.show()
+    trackedDialogs.add(dialog)
   }
 
   private fun showInviteSheet() {
@@ -259,7 +306,8 @@ class TemanFragment : Fragment() {
 
     btnQr.setOnClickListener {
       if (!ClickGuard.canClick()) return@setOnClickListener
-      context?.let { AppToast.show(it, "QR Scan belum tersedia — masukkan PIN manual") }
+      val opts = ScanOptions().apply { setDesiredBarcodeFormats(ScanOptions.QR_CODE); setPrompt("Scan QR teman"); setBeepEnabled(false); setOrientationLocked(false) }
+      qrLauncher.launch(opts)
     }
     btnKontak.setOnClickListener {
       if (!ClickGuard.canClick()) return@setOnClickListener
@@ -269,8 +317,8 @@ class TemanFragment : Fragment() {
 
     btnKirim.setOnClickListener {
       if (!ClickGuard.canClick()) return@setOnClickListener
-      val raw = input.text.toString().trim().uppercase().replace(" ", "")
-      if (raw.length != 8 || !raw.all { it in "0123456789ABCDEF" }) {
+      val raw = PinValidator.normalize(input.text.toString())
+      if (!PinValidator.isValid(raw)) {
         context?.let { AppToast.show(it, "PIN harus 8 karakter hex (0-9, A-F)") }
         return@setOnClickListener
       }
@@ -280,9 +328,9 @@ class TemanFragment : Fragment() {
         context?.let { AppToast.show(it, "Tidak bisa invite PIN sendiri") }
         return@setOnClickListener
       }
-      val pretty = raw.chunked(4).joinToString(" ")
+      val pretty = PinValidator.pretty(raw)
       btnKirim.setLoading(true, null)
-      viewLifecycleOwner.lifecycleScope.launch {
+      lifecycleScope.launch {
         val db = (requireActivity().application as UpMeApp).locator.db
         val existing = db.temanDao().find(raw)
         if (existing != null) {
@@ -366,7 +414,7 @@ class TemanFragment : Fragment() {
     primary.setOnClickListener {
       if (!ClickGuard.canClick()) return@setOnClickListener
       primary.setLoading(true, null)
-      viewLifecycleOwner.lifecycleScope.launch {
+      lifecycleScope.launch {
         try {
           val app = requireActivity().application as UpMeApp
           val authPrefs = com.upme.messenger.data.auth.AuthPrefs(requireContext())
@@ -394,7 +442,7 @@ class TemanFragment : Fragment() {
     }
     secondary.setOnClickListener {
       if (!ClickGuard.canClick()) return@setOnClickListener
-      viewLifecycleOwner.lifecycleScope.launch {
+      lifecycleScope.launch {
         try {
           val app = requireActivity().application as UpMeApp
           val authPrefs = com.upme.messenger.data.auth.AuthPrefs(requireContext())

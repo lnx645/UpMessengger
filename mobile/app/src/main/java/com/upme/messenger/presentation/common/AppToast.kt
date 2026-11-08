@@ -34,8 +34,15 @@ object AppToast {
     private fun dismiss() {
         currentView?.let { v ->
             try {
-                (v.parent as? ViewGroup)?.removeView(v)
-            } catch (_: Exception) {}
+                val wm = v.getTag(R.id.txtToast) as? android.view.WindowManager
+                if (wm != null) {
+                    try { wm.removeView(v) } catch (_: Exception) {}
+                } else {
+                    (v.parent as? ViewGroup)?.removeView(v)
+                }
+            } catch (_: Exception) {
+                try { (v.parent as? ViewGroup)?.removeView(v) } catch (_: Exception) {}
+            }
         }
         currentView = null
         handler.removeCallbacks(dismissRunnable)
@@ -45,35 +52,50 @@ object AppToast {
     fun show(context: Context, message: String, durationMs: Long = 2200L) {
         if (message.isBlank()) return
         val activity = getActivity(context) ?: return
-        // debounce: hapus toast sebelumnya langsung
         dismiss()
         try {
             val inflater = LayoutInflater.from(activity)
             val view = inflater.inflate(R.layout.toast_custom, null)
             view.findViewById<TextView>(R.id.txtToast).text = message
             view.alpha = 0f
-            val decor = activity.window.decorView as ViewGroup
-            val params = FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
+            // Gunakan WindowManager agar di atas semua sheet/dialog (z-index tertinggi)
+            val wm = activity.getSystemService(Context.WINDOW_SERVICE) as android.view.WindowManager
+            val params = android.view.WindowManager.LayoutParams(
+                android.view.WindowManager.LayoutParams.WRAP_CONTENT,
+                android.view.WindowManager.LayoutParams.WRAP_CONTENT,
+                android.view.WindowManager.LayoutParams.TYPE_APPLICATION_PANEL,
+                android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or android.view.WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or android.view.WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                android.graphics.PixelFormat.TRANSLUCENT
             ).apply {
                 gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-                bottomMargin = (56 * activity.resources.displayMetrics.density).toInt()
-                marginStart = (24 * activity.resources.displayMetrics.density).toInt()
-                marginEnd = (24 * activity.resources.displayMetrics.density).toInt()
+                y = (72 * activity.resources.displayMetrics.density).toInt()
+                windowAnimations = android.R.style.Animation_Toast
             }
-            // Cari container yang tepat — tambahkan ke decor
-            val parent: ViewGroup = decor.findViewById(android.R.id.content) ?: decor
-            parent.addView(view, params)
+            // simpan wm dan view untuk dismiss
+            wm.addView(view, params)
             currentView = view
+            // simpan wm di tag untuk remove
+            view.setTag(R.id.txtToast, wm)
             view.animate().alpha(1f).setDuration(180).start()
             handler.postDelayed(dismissRunnable, durationMs)
-            // auto fade out 200ms sebelum hilang
             handler.postDelayed({
                 currentView?.animate()?.alpha(0f)?.setDuration(180)?.withEndAction { dismiss() }?.start()
             }, durationMs - 200)
         } catch (_: Exception) {
-            // fallback jangan crash — abaikan jika window belum ready
+            // fallback ke decor jika WindowManager gagal (permission)
+            try {
+                val inflater = LayoutInflater.from(activity)
+                val view = inflater.inflate(R.layout.toast_custom, null)
+                view.findViewById<TextView>(R.id.txtToast).text = message
+                val decor = activity.window.decorView as ViewGroup
+                val params = FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                    gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                    bottomMargin = (56 * activity.resources.displayMetrics.density).toInt()
+                }
+                val parent: ViewGroup = decor.findViewById(android.R.id.content) ?: decor
+                parent.addView(view, params)
+                currentView = view
+            } catch (_: Exception) {}
         }
     }
 

@@ -11,6 +11,7 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.net.Socket
 import javax.net.ssl.SSLSocketFactory
+import com.upme.messenger.util.HostUtil
 
 /**
  * Privasi & Keamanan prefs untuk pertemanan auto-approve.
@@ -109,7 +110,7 @@ class PrivacyPrefs(ctx: Context) {
                 .put("block_invite", blockInvite)
                 .toString().toByteArray()
 
-            val isDevHost = host == "127.0.0.1"
+            val isDevHost = HostUtil.isDevHost(host)
             val s: Socket = if (isDevHost) {
                 Socket(host, port).apply { soTimeout = 5000 }
             } else {
@@ -120,7 +121,7 @@ class PrivacyPrefs(ctx: Context) {
             out.writeInt(payload.size + 1); out.writeByte(0x30); out.write(payload); out.flush()
             val len = inp.readInt(); val t = inp.readByte().toInt() and 0xFF
             val body = ByteArray(len - 1); inp.readFully(body)
-            s.close()
+            try { s.close() } catch (_: Exception) {}
             if (t == 0x30) Result.success(Unit)
             else {
                 val err = try { JSONObject(String(body)).optString("error", "sync_failed") } catch (_: Exception) { "sync_failed" }
@@ -143,7 +144,7 @@ class PrivacyPrefs(ctx: Context) {
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val payload = JSONObject().put("phone", phone).put("token", token).toString().toByteArray()
-            val isDevHost = host == "127.0.0.1"
+            val isDevHost = HostUtil.isDevHost(host)
             val s: Socket = if (isDevHost) Socket(host, port).apply { soTimeout = 5000 }
             else SSLSocketFactory.getDefault().createSocket(host, port).apply { soTimeout = 5000 }
             val out = DataOutputStream(s.getOutputStream())
@@ -151,7 +152,7 @@ class PrivacyPrefs(ctx: Context) {
             out.writeInt(payload.size + 1); out.writeByte(0x31); out.write(payload); out.flush()
             val len = inp.readInt(); val t = inp.readByte().toInt() and 0xFF
             val body = ByteArray(len - 1); inp.readFully(body)
-            s.close()
+            try { s.close() } catch (_: Exception) {}
             if (t == 0x31) {
                 val j = JSONObject(String(body))
                 if (j.has("auto_approve")) autoApprove = j.getBoolean("auto_approve")

@@ -4,9 +4,14 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Color
 import android.os.Bundle
 import android.view.*
 import android.widget.*
+import coil.load
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.qrcode.QRCodeWriter
 import com.upme.messenger.presentation.common.AppToast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -16,9 +21,15 @@ import com.upme.messenger.UpMeApp
 import com.upme.messenger.data.local.TemanEntity
 import com.upme.messenger.presentation.common.ClickGuard
 import com.upme.messenger.presentation.common.setLoading
+import com.upme.messenger.util.PinValidator
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
 
 class ProfilFragment : Fragment() {
+  private var qrDialog: com.google.android.material.bottomsheet.BottomSheetDialog? = null
   override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View = i.inflate(R.layout.fragment_profil, c, false)
 
   override fun onViewCreated(v: View, s: Bundle?) {
@@ -27,15 +38,27 @@ class ProfilFragment : Fragment() {
     var pin = authPrefs.pin ?: prefs.getString("pin", null)
     var name = authPrefs.name ?: "hendra"
     if (pin == null) {
-      pin = (1..8).map { "0123456789ABCDEF".random() }.joinToString("")
+      pin = PinValidator.generate()
       prefs.edit().putString("pin", pin).apply()
       authPrefs.pin = pin
     }
-    val pretty = pin.chunked(4).joinToString(" ")
+    val pretty = PinValidator.pretty(pin)
     v.findViewById<TextView>(R.id.myPin).text = pretty
     v.findViewById<TextView>(R.id.profilInitial).text = name.take(2).uppercase().ifEmpty { "HE" }
     v.findViewById<TextView>(R.id.profilName).text = name
     val phone = authPrefs.phone ?: "-"
+    // Load avatar if exists
+    val avatarFile = File(requireContext().filesDir, "avatar.jpg")
+    val imgAvatar = v.findViewById<ImageView>(R.id.imgProfilAvatar)
+    val txtInitial = v.findViewById<TextView>(R.id.profilInitial)
+    if (avatarFile.exists()) {
+      imgAvatar.visibility = View.VISIBLE
+      txtInitial.visibility = View.GONE
+      imgAvatar.load(avatarFile) { crossfade(true) }
+    } else {
+      imgAvatar.visibility = View.GONE
+      txtInitial.visibility = View.VISIBLE
+    }
 
     fun showComingSoon(title: String) {
       AlertDialog.Builder(requireContext()).setTitle(title).setMessage("Fitur $title segera hadir").setPositiveButton("OK", null).show()
@@ -43,11 +66,7 @@ class ProfilFragment : Fragment() {
 
     v.findViewById<View>(R.id.rowQr).setOnClickListener {
       if (!ClickGuard.canClick()) return@setOnClickListener
-      AlertDialog.Builder(requireContext()).setTitle("QR Code Saya").setMessage("PIN: $pretty\nPhone: $phone\n\nQR berisi PIN untuk di-scan teman").setPositiveButton("Salin") { _, _ ->
-        val cm = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        cm.setPrimaryClip(ClipData.newPlainText("PIN", pin))
-        context?.let { AppToast.show(it, "PIN disalin") }
-      }.setNegativeButton("Tutup", null).show()
+      showQrDialog(pin, pretty, name, avatarFile)
     }
     v.findViewById<View>(R.id.rowProfilDetail).setOnClickListener {
       if (!ClickGuard.canClick()) return@setOnClickListener
@@ -149,6 +168,15 @@ class ProfilFragment : Fragment() {
       }.setNegativeButton("Batal", null).show()
       true
     }
+    // Long press avatar to change
+    v.findViewById<View>(R.id.imgProfilAvatar)?.setOnClickListener {
+      if (!ClickGuard.canClick()) return@setOnClickListener
+      parentFragmentManager.beginTransaction().replace(R.id.container, com.upme.messenger.presentation.avatar.UserAvatarCroppingFragment.newInstance(android.net.Uri.fromFile(avatarFile))).addToBackStack("crop").commit()
+    }
+    v.findViewById<TextView>(R.id.profilInitial)?.setOnClickListener {
+      if (!ClickGuard.canClick()) return@setOnClickListener
+      parentFragmentManager.beginTransaction().replace(R.id.container, com.upme.messenger.presentation.avatar.UserAvatarCroppingFragment.newInstance(android.net.Uri.fromFile(avatarFile))).addToBackStack("crop").commit()
+    }
 
     val btnCopy = v.findViewById<MaterialButton>(R.id.btnCopy)
     val progressCopy = v.findViewById<ProgressBar>(R.id.progressCopy)
@@ -163,7 +191,10 @@ class ProfilFragment : Fragment() {
       val cm = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
       cm.setPrimaryClip(ClipData.newPlainText("PIN", pin))
       context?.let { AppToast.show(it, "PIN $pretty disalin") }
-      btnCopy.postDelayed({ btnCopy.setLoading(false, progressCopy) }, 600)
+      viewLifecycleOwner.lifecycleScope.launch {
+        kotlinx.coroutines.delay(600)
+        if (isAdded) btnCopy.setLoading(false, progressCopy)
+      }
     }
     btnShare.setOnClickListener {
       if (!ClickGuard.canClick()) return@setOnClickListener
@@ -173,13 +204,16 @@ class ProfilFragment : Fragment() {
         putExtra(Intent.EXTRA_TEXT, "PIN UpMessenger saya: $pretty — invite aku ya!")
       }
       startActivity(Intent.createChooser(intent, "Bagikan PIN"))
-      btnShare.postDelayed({ btnShare.setLoading(false, progressShare) }, 800)
+      viewLifecycleOwner.lifecycleScope.launch {
+        kotlinx.coroutines.delay(800)
+        if (isAdded) btnShare.setLoading(false, progressShare)
+      }
     }
 
     btnInvite.setOnClickListener {
       if (!ClickGuard.canClick()) return@setOnClickListener
-      val t = v.findViewById<EditText>(R.id.pinInput).text.toString().trim().uppercase().replace(" ", "")
-      if (t.length != 8 || !t.all { it in "0123456789ABCDEF" }) {
+      val t = PinValidator.normalize(v.findViewById<EditText>(R.id.pinInput).text.toString())
+      if (!PinValidator.isValid(t)) {
         context?.let { AppToast.show(it, "PIN harus 8 karakter hex (0-9, A-F)") }
         return@setOnClickListener
       }
@@ -188,7 +222,7 @@ class ProfilFragment : Fragment() {
         context?.let { AppToast.show(it, "Tidak bisa invite PIN sendiri") }
         return@setOnClickListener
       }
-      val prettyT = t.chunked(4).joinToString(" ")
+      val prettyT = PinValidator.pretty(t)
       btnInvite.setLoading(true, progressInvite)
       viewLifecycleOwner.lifecycleScope.launch {
         val db = (requireActivity().application as UpMeApp).locator.db
@@ -214,5 +248,177 @@ class ProfilFragment : Fragment() {
         }
       }
     }
+  }
+
+  private fun showQrDialog(pin: String, pretty: String, name: String, avatarFile: File) {
+    if (!isAdded) return
+    val ctx = requireContext()
+    val dialogView = layoutInflater.inflate(R.layout.dialog_qr, null)
+    val imgQr = dialogView.findViewById<ImageView>(R.id.imgQr)
+    val imgAvatar = dialogView.findViewById<ImageView>(R.id.imgQrAvatar)
+    val txtPin = dialogView.findViewById<TextView>(R.id.txtQrPin)
+    val txtName = dialogView.findViewById<TextView>(R.id.txtQrName)
+    txtPin.text = pretty
+    txtName.text = name
+    val hashed = hashPin(pin)
+    val qrText = "upme:$hashed:$pin"
+    var bmpCache: Bitmap? = null
+    viewLifecycleOwner.lifecycleScope.launch {
+      val bmp = withContext(Dispatchers.Default) { generateQrBitmap(qrText, 600, null) }
+      bmpCache = bmp
+      if (isAdded && bmp != null) imgQr.setImageBitmap(bmp)
+    }
+    dialogView.findViewById<View>(R.id.txtQrCenterPin).visibility = View.GONE
+    if (avatarFile.exists()) {
+      imgAvatar.visibility = View.VISIBLE
+      imgAvatar.load(avatarFile) { crossfade(true) }
+    }
+    val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(ctx, R.style.ThemeOverlay_App_BottomSheet)
+    qrDialog = dialog
+    dialog.setOnDismissListener { imgQr.setImageDrawable(null); qrDialog = null }
+    dialog.setContentView(dialogView)
+    dialogView.findViewById<View>(R.id.btnQrClose).setOnClickListener { dialog.dismiss() }
+    dialogView.findViewById<View>(R.id.btnQrShare).setOnClickListener {
+      if (!ClickGuard.canClick()) return@setOnClickListener
+      val cur = bmpCache ?: return@setOnClickListener
+      viewLifecycleOwner.lifecycleScope.launch {
+        try {
+          val bmpToShare = withContext(Dispatchers.Default) { generateFramedQr(cur, pretty) }
+          val cacheFile = File(ctx.cacheDir, "qr_${pin}.png")
+          withContext(Dispatchers.IO) { FileOutputStream(cacheFile).use { out -> bmpToShare.compress(Bitmap.CompressFormat.PNG, 100, out) } }
+          val uri = androidx.core.content.FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", cacheFile)
+          val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "image/png"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_TEXT, "PIN UpMessenger saya: $pretty")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+          }
+          startActivity(Intent.createChooser(intent, "Bagikan QR"))
+        } catch (e: Exception) {
+          val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, "PIN UpMessenger saya: $pretty — $qrText")
+          }
+          startActivity(Intent.createChooser(intent, "Bagikan QR"))
+        }
+      }
+    }
+    dialogView.findViewById<View>(R.id.btnQrDownload).setOnClickListener {
+      if (!ClickGuard.canClick()) return@setOnClickListener
+      val cur = bmpCache ?: return@setOnClickListener
+      viewLifecycleOwner.lifecycleScope.launch {
+        try {
+          val bmpToSave = withContext(Dispatchers.Default) { generateFramedQr(cur, pretty) }
+          val dir = File(ctx.getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES), "UpMessenger")
+          dir.mkdirs()
+          val file = File(dir, "qr_${pin}.png")
+          withContext(Dispatchers.IO) { FileOutputStream(file).use { out -> bmpToSave.compress(Bitmap.CompressFormat.PNG, 100, out) } }
+          context?.let { AppToast.show(it, "QR disimpan: ${file.absolutePath}") }
+          val mediaIntent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).apply { data = android.net.Uri.fromFile(file) }
+          ctx.sendBroadcast(mediaIntent)
+        } catch (e: Exception) {
+          context?.let { AppToast.show(it, "Gagal simpan: ${e.message}") }
+        }
+      }
+    }
+    dialog.behavior.isDraggable = true
+    dialog.show()
+  }
+
+  override fun onDestroyView() {
+    qrDialog?.dismiss(); qrDialog = null
+    super.onDestroyView()
+  }
+
+  private fun generateQrBitmap(text: String, size: Int, pinPretty: String? = null): Bitmap? {
+    return try {
+      val writer = QRCodeWriter()
+      val bitMatrix = writer.encode(text, BarcodeFormat.QR_CODE, size, size)
+      val pixels = IntArray(size * size)
+      for (y in 0 until size) for (x in 0 until size) pixels[y * size + x] = if (bitMatrix.get(x, y)) Color.BLACK else Color.WHITE
+      var bmp: Bitmap = Bitmap.createBitmap(pixels, size, size, Bitmap.Config.RGB_565)
+      // Tanam PIN di tengah QR (kaya BBM) — white rounded bg + PIN text
+      if (pinPretty != null) {
+        bmp = bmp.copy(Bitmap.Config.ARGB_8888, true)!!
+        val canvas = android.graphics.Canvas(bmp)
+        val rectSize = (size * 0.32).toInt()
+        val left = (size - rectSize) / 2f
+        val top = (size - rectSize) / 2f
+        val paintBg = android.graphics.Paint().apply {
+          color = Color.WHITE
+          style = android.graphics.Paint.Style.FILL
+          isAntiAlias = true
+        }
+        val rect = android.graphics.RectF(left, top, left + rectSize, top + rectSize)
+        canvas.drawRoundRect(rect, 16f, 16f, paintBg)
+        // border tipis
+        val paintBorder = android.graphics.Paint().apply {
+          color = Color.parseColor("#E0E0E0")
+          style = android.graphics.Paint.Style.STROKE
+          strokeWidth = 3f
+          isAntiAlias = true
+        }
+        canvas.drawRoundRect(rect, 16f, 16f, paintBorder)
+        val paintText = android.graphics.Paint().apply {
+          color = Color.parseColor("#111B21")
+          textSize = size * 0.045f
+          typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD)
+          textAlign = android.graphics.Paint.Align.CENTER
+          isAntiAlias = true
+        }
+        val xPos = size / 2f
+        val yPos = size / 2f - (paintText.descent() + paintText.ascent()) / 2
+        canvas.drawText(pinPretty, xPos, yPos, paintText)
+      }
+      bmp
+    } catch (_: Exception) { null }
+  }
+
+  private fun hashPin(pin: String): String {
+    return try {
+      val md = java.security.MessageDigest.getInstance("SHA-256")
+      val digest = md.digest(pin.toByteArray(Charsets.UTF_8))
+      digest.joinToString("") { "%02x".format(it) }
+    } catch (_: Exception) { pin }
+  }
+
+  private fun generateFramedQr(qr: Bitmap, pinPretty: String): Bitmap {
+    // Frame BBM 100%: padding merata mengelilingi semua isi (QR + #UpMessenger + PIN)
+    val pad = 24
+    val headerH = 40
+    val footerH = 40
+    val w = qr.width + pad * 2
+    val h = qr.height + headerH + footerH + pad * 2
+    val out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+    val canvas = android.graphics.Canvas(out)
+    canvas.drawColor(Color.WHITE)
+    val paintHeader = android.graphics.Paint().apply {
+      color = Color.parseColor("#075E54")
+      textSize = 26f
+      typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD)
+      textAlign = android.graphics.Paint.Align.CENTER
+      isAntiAlias = true
+    }
+    // #UpMessenger di dalam padding atas
+    canvas.drawText("#UpMessenger", w / 2f, pad + headerH - 10f, paintHeader)
+    // QR di tengah dengan padding merata
+    canvas.drawBitmap(qr, pad.toFloat(), (pad + headerH).toFloat(), null)
+    val paintPin = android.graphics.Paint().apply {
+      color = Color.parseColor("#111B21")
+      textSize = 24f
+      typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD)
+      textAlign = android.graphics.Paint.Align.CENTER
+      isAntiAlias = true
+    }
+    val pinLabel = "PIN: $pinPretty"
+    canvas.drawText(pinLabel, w / 2f, h - pad - 12f, paintPin)
+    val paintBorder = android.graphics.Paint().apply {
+      color = Color.parseColor("#E0E0E0")
+      style = android.graphics.Paint.Style.STROKE
+      strokeWidth = 3f
+      isAntiAlias = true
+    }
+    canvas.drawRoundRect(android.graphics.RectF(0f, 0f, w.toFloat(), h.toFloat()), 16f, 16f, paintBorder)
+    return out
   }
 }

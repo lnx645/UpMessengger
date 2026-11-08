@@ -60,6 +60,14 @@ class FriendFragment : Fragment() {
       context?.let { AppToast.show(it, "QR tidak valid") }
     }
   }
+  private val requestCamera = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { granted ->
+    if (granted) {
+      val opts = ScanOptions().apply { setDesiredBarcodeFormats(ScanOptions.QR_CODE); setPrompt("Scan QR teman"); setBeepEnabled(false); setOrientationLocked(false) }
+      qrLauncher.launch(opts)
+    } else {
+      context?.let { AppToast.show(it, "Izin kamera ditolak — isi PIN manual") }
+    }
+  }
 
   private val pickContact = registerForActivityResult(ActivityResultContracts.PickContact()) { uri ->
     if (uri == null) return@registerForActivityResult
@@ -380,6 +388,11 @@ class FriendFragment : Fragment() {
 
     btnQr.setOnClickListener {
       if (!ClickGuard.canClick()) return@setOnClickListener
+      val ctx = context ?: return@setOnClickListener
+      if (androidx.core.content.ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.CAMERA) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+        requestCamera.launch(android.Manifest.permission.CAMERA)
+        return@setOnClickListener
+      }
       val opts = ScanOptions().apply { setDesiredBarcodeFormats(ScanOptions.QR_CODE); setPrompt("Scan QR teman"); setBeepEnabled(false); setOrientationLocked(false) }
       qrLauncher.launch(opts)
     }
@@ -418,16 +431,22 @@ class FriendFragment : Fragment() {
           context?.let { AppToast.show(it, "Invite ke $pretty sudah pending") }
           return@launch
         }
-        // Server invite 0x32
+        // Server invite 0x32 — distinguish network vs 401/block
         var serverStatus: String? = null
+        var networkError = false
         try {
           val app = requireActivity().application as UpMeApp
           val token = authPrefs.token
           val phone = authPrefs.phone
           if (token != null && phone != null) {
-            serverStatus = app.locator.tcp.inviteTeman(phone, token, raw)
-          }
-        } catch (_: Exception) {}
+            serverStatus = app.locator.tcp.inviteFriend(phone, token, raw)
+          } else networkError = true
+        } catch (_: Exception) { networkError = true }
+        if (networkError && serverStatus == null) {
+          btnKirim.setLoading(false, null)
+          context?.let { AppToast.show(it, "Offline — cek koneksi, coba lagi") }
+          return@launch
+        }
         if (serverStatus == "pending") {
           db.pendingDao().upsert(PendingEntity(raw, "Teman $pretty", "", System.currentTimeMillis(), "OUT"))
           btnKirim.setLoading(false, null)
@@ -436,9 +455,15 @@ class FriendFragment : Fragment() {
           return@launch
         }
         if (serverStatus != null && serverStatus !in listOf("accepted", "pending")) {
-          // error from server
+          // error from server: blocked / whoCanAdd / rate_limited — jangan buat local
           btnKirim.setLoading(false, null)
           context?.let { AppToast.show(it, "Gagal: $serverStatus") }
+          return@launch
+        }
+        if (serverStatus == null) {
+          // Fallback offline: jangan buat teman lokal tanpa konfirmasi server
+          btnKirim.setLoading(false, null)
+          context?.let { AppToast.show(it, "Offline — tidak bisa invite sekarang") }
           return@launch
         }
         db.temanDao().upsert(TemanEntity(raw, "Teman $pretty", System.currentTimeMillis()))

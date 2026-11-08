@@ -51,13 +51,16 @@ class FriendFragment : Fragment() {
   private val trackedDialogs = mutableSetOf<BottomSheetDialog>()
   private val qrLauncher = registerForActivityResult(ScanContract()) { result ->
     val content = result.contents ?: return@registerForActivityResult
-    // QR contains upme:<hash>:<pin> -> extract pin 8 hex
-    val raw = content.substringAfterLast(":").trim().uppercase().replace(" ", "")
+    // QR is upme:<hash>:<pin> or plain 8 hex
+    val candidate = content.trim()
+    val raw = if (candidate.contains(":")) candidate.substringAfterLast(":").trim().uppercase().replace(" ", "")
+              else candidate.uppercase().replace(" ", "")
     if (PinValidator.isValid(raw)) {
-      view?.findViewById<EditText>(R.id.inputPinInvite)?.setText(raw)
       context?.let { AppToast.show(it, "PIN ${PinValidator.pretty(raw)} terdeteksi") }
+      // Buka sheet invite dengan PIN terisi — langsung aksi
+      if (isAdded) showInviteSheetWithPrefill(raw)
     } else {
-      context?.let { AppToast.show(it, "QR tidak valid") }
+      context?.let { AppToast.show(it, "QR tidak valid: $candidate") }
     }
   }
   private val requestCamera = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { granted ->

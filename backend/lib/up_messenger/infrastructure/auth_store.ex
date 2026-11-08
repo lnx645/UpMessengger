@@ -535,14 +535,14 @@ defmodule UpMessenger.Infrastructure.AuthStore do
 
   @impl true
   def init(_) do
-    :ets.new(@otp_table, [:named_table, :set, :public, read_concurrency: true, write_concurrency: true])
-    :ets.new(@user_table, [:named_table, :set, :public, read_concurrency: true, write_concurrency: true])
-    :ets.new(@rate_table, [:named_table, :set, :public, read_concurrency: true, write_concurrency: true])
-    :ets.new(@attempt_table, [:named_table, :set, :public, read_concurrency: true, write_concurrency: true])
-    :ets.new(@pending_table, [:named_table, :set, :public, read_concurrency: true, write_concurrency: true])
-    :ets.new(@blocked_table, [:named_table, :set, :public, read_concurrency: true, write_concurrency: true])
+    for t <- [@otp_table, @user_table, @rate_table, @attempt_table, @pending_table, @blocked_table] do
+      case :ets.whereis(t) do
+        :undefined -> :ets.new(t, [:named_table, :set, :public, read_concurrency: true, write_concurrency: true])
+        _ -> :ok
+      end
+    end
+    # ensure JWT keys and users already loaded in Application.start; reload if needed (idempotent)
     UpMessenger.Domain.Jwt.ensure_keys!()
-    # load persisted users (DETS -> ETS)
     try do
       Persistence.load_users!()
     rescue _ -> :ok end

@@ -4,6 +4,11 @@ defmodule UpMessenger.Application do
   @doc "Start supervision tree: session registry, offline queue, TCP listener."
   @spec start(any(), any()) :: {:ok, pid()}
   def start(_type, _args) do
+    # Fix 4: ensure JWT keys & users loaded synchronously before any TCP accept — prevent mass logout after BEAM restart
+    try do
+      UpMessenger.Domain.Jwt.ensure_keys!()
+      UpMessenger.Infrastructure.Persistence.load_users!()
+    rescue _ -> :ok end
     port = String.to_integer(System.get_env("UPME_PORT", "5222"))
     tls = System.get_env("UPME_TLS", "false") == "true"
     transport_options = if tls do

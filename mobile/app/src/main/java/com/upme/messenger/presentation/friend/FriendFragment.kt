@@ -242,14 +242,30 @@ class FriendFragment : Fragment() {
   }
 
   private fun syncPendingFromServer() {
+    if (!isAdded) return
     lifecycleScope.launch {
       try {
-        val app = requireActivity().application as UpMeApp
-        val authPrefs = com.upme.messenger.data.auth.AuthPrefs(requireContext())
+        val ctx = context ?: return@launch
+        val app = activity?.application as? UpMeApp ?: return@launch
+        val authPrefs = com.upme.messenger.data.auth.AuthPrefs(ctx)
         val token = authPrefs.token ?: return@launch
         val phone = authPrefs.phone ?: return@launch
-        val raw = app.locator.tcp.syncPending(phone, token) // will be added to TcpClient
-        // raw is list of maps
+        val raw = app.locator.tcp.syncPending(phone, token)
+        if (raw.isEmpty()) return@launch
+        val db = app.locator.db
+        for (m in raw) {
+          val pin = m["pin"]?.uppercase() ?: continue
+          if (!PinValidator.isValid(pin)) continue
+          val name = m["name"]?.takeIf { it.isNotBlank() } ?: "Teman ${PinValidator.pretty(pin)}"
+          val phoneFrom = m["phone"] ?: ""
+          db.pendingDao().upsert(com.upme.messenger.data.local.PendingEntity(pin, name, phoneFrom, System.currentTimeMillis(), "IN"))
+        }
+        if (isAdded) refresh()
+        // Show heads-up if new pending while in background (optional)
+        val newCount = raw.size
+        if (newCount > 0 && !showPendingOnly) {
+          AppToast.show(ctx, "$newCount permintaan baru — buka Permintaan")
+        }
       } catch (_: Exception) {}
     }
   }

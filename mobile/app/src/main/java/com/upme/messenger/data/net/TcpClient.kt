@@ -96,7 +96,8 @@ class TcpClient(private val dao: MessageDao, private val host: String = "127.0.0
     } finally { try { s.close() } catch (_: Exception) {} }
   }
 
-  suspend fun inviteTeman(phone: String, token: String, targetPin: String): String? = withContext(Dispatchers.IO) {
+  // English primary — keep Indonesian as deprecated alias for uniform convention
+  suspend fun inviteFriend(phone: String, token: String, targetPin: String): String? = withContext(Dispatchers.IO) {
     try {
       val payload = JSONObject().put("phone", phone).put("token", token).put("target_pin", targetPin).toString().toByteArray()
       val (t, body) = requestOnce(payload, 0x32)
@@ -104,6 +105,8 @@ class TcpClient(private val dao: MessageDao, private val host: String = "127.0.0
       if (t == 0x32) json.optString("status", null) else { json.optString("error", null) }
     } catch (_: Exception) { null }
   }
+  @Deprecated("Use inviteFriend", ReplaceWith("inviteFriend(phone, token, targetPin)"))
+  suspend fun inviteTeman(phone: String, token: String, targetPin: String): String? = inviteFriend(phone, token, targetPin)
 
   suspend fun syncPending(phone: String, token: String): List<Map<String, String>> = withContext(Dispatchers.IO) {
     try {
@@ -122,8 +125,8 @@ class TcpClient(private val dao: MessageDao, private val host: String = "127.0.0
     return m
   }
 
-  /** Cari user by PIN/nama di server (0x38). Return list {pin,name,phone}. Min query 2 char (server enforce). */
-  suspend fun searchTeman(token: String, query: String): List<Map<String, String>> = withContext(Dispatchers.IO) {
+  /** Search user by PIN/name on server (0x38). English primary. */
+  suspend fun searchFriend(token: String, query: String): List<Map<String, String>> = withContext(Dispatchers.IO) {
     if (query.trim().length < 2) return@withContext emptyList()
     return@withContext try {
       val payload = JSONObject().put("token", token).put("query", query.trim()).toString().toByteArray()
@@ -136,6 +139,8 @@ class TcpClient(private val dao: MessageDao, private val host: String = "127.0.0
       }.filter { it["pin"]?.isNotBlank() == true }
     } catch (_: Exception) { emptyList() }
   }
+  @Deprecated("Use searchFriend", ReplaceWith("searchFriend(token, query)"))
+  suspend fun searchTeman(token: String, query: String): List<Map<String, String>> = searchFriend(token, query)
 
   /** Resolve PIN -> nomor (0x39). Butuh auth; dipakai verifikasi, bukan enumerasi. */
   suspend fun pinToPhone(token: String, pin: String): String? = withContext(Dispatchers.IO) {
@@ -163,13 +168,15 @@ class TcpClient(private val dao: MessageDao, private val host: String = "127.0.0
     } catch (_: Exception) { false }
   }
 
-  suspend fun deleteTeman(phone: String, token: String, pin: String, block: Boolean): Boolean = withContext(Dispatchers.IO) {
+  suspend fun deleteFriend(phone: String, token: String, pin: String, block: Boolean): Boolean = withContext(Dispatchers.IO) {
     try {
       val payload = JSONObject().put("phone", phone).put("token", token).put("pin", pin).put("block", block).toString().toByteArray()
       val (t, _) = requestOnce(payload, 0x37)
       t == 0x37
     } catch (_: Exception) { false }
   }
+  @Deprecated("Use deleteFriend", ReplaceWith("deleteFriend(phone, token, pin, block)"))
+  suspend fun deleteTeman(phone: String, token: String, pin: String, block: Boolean): Boolean = deleteFriend(phone, token, pin, block)
 
   // Overload tanpa token untuk kompatibilitas lama -> tolak (jangan kirim tanpa auth)
   @Deprecated("Gunakan send(..., token) untuk rilis publik")

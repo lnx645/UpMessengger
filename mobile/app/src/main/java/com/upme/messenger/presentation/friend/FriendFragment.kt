@@ -64,34 +64,55 @@ class FriendFragment : Fragment() {
   private val pickContact = registerForActivityResult(ActivityResultContracts.PickContact()) { uri ->
     if (uri == null) return@registerForActivityResult
     try {
-      val cursor = requireContext().contentResolver.query(uri, arrayOf(android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER), null, null, null)
+      val ctx = context ?: return@registerForActivityResult
+      val cursor = ctx.contentResolver.query(uri, arrayOf(android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER), null, null, null)
       cursor?.use {
         if (it.moveToFirst()) {
           var phone = it.getString(0) ?: ""
-          phone = phone.replace(" ", "").replace("-", "")
-          context?.let { ctx ->
-            lifecycleScope.launch {
-              try {
-                val app = requireActivity().application as UpMeApp
-                val authPrefs = com.upme.messenger.data.auth.AuthPrefs(requireContext())
-                val token = authPrefs.token
-                if (token == null) {
-                  AppToast.show(ctx, "Belum login")
-                  return@launch
-                }
-                // Try server phone->PIN lookup via 0x39, fallback to search
-                AppToast.show(ctx, "Mencari PIN untuk $phone...")
-                // For now, do local search by phone not available, show hint
-                // Future: call 0x39 phone_for_pin via TcpClient raw
-                AppToast.show(ctx, "Kontak $phone — PIN lookup via server segera")
-              } catch (_: Exception) {
-                AppToast.show(ctx, "Gagal cari kontak")
+          phone = phone.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
+          // Normalize to E164-ish: keep + and digits
+          val normalized = phone.trim()
+          lifecycleScope.launch {
+            try {
+              val app = activity?.application as? UpMeApp ?: return@launch
+              val authPrefs = com.upme.messenger.data.auth.AuthPrefs(ctx)
+              val token = authPrefs.token
+              if (token == null) {
+                AppToast.show(ctx, "Belum login")
+                return@launch
               }
+              AppToast.show(ctx, "Mencari PIN untuk $normalized...")
+              // Try search by phone substring via 0x38 (server searches name/pin, but phone search may return empty — graceful)
+              val results = app.locator.tcp.searchFriend(token, normalized.takeLast(8))
+              if (results.isNotEmpty()) {
+                val first = results.first()
+                val pin = first["pin"] ?: ""
+                val name = first["name"] ?: pin
+                AppToast.show(ctx, "Ditemukan $name ($pin) — isi PIN otomatis")
+                // Autofill invite sheet if open, else show invite sheet with pin
+                view?.findViewById<EditText>(R.id.inputPinInvite)?.setText(pin)
+                // If sheet not open, open it with prefill
+                if (view?.findViewById<EditText>(R.id.inputPinInvite) == null) {
+                  showInviteSheetWithPrefill(pin)
+                }
+              } else {
+                AppToast.show(ctx, "Kontak $normalized belum terdaftar — invite via PIN manual")
+                showInviteSheetWithPrefill("")
+              }
+            } catch (_: Exception) {
+              AppToast.show(ctx, "Gagal cari kontak")
             }
           }
         }
       }
     } catch (_: Exception) {}
+  }
+  private fun showInviteSheetWithPrefill(prefillPin: String) {
+    showInviteSheet()
+    // post autofill after sheet inflated
+    view?.post {
+      view?.findViewById<EditText>(R.id.inputPinInvite)?.setText(prefillPin)
+    }
   }
 
   override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View = i.inflate(R.layout.fragment_teman, c, false)
@@ -129,6 +150,7 @@ class FriendFragment : Fragment() {
           delay(300)
           currentFilter = text.trim()
           refresh()
+          if (currentFilter.length >= 2) triggerServerSearch(currentFilter)
         }
       }
     } else if (inputSearch != null) {
@@ -141,6 +163,7 @@ class FriendFragment : Fragment() {
             delay(300)
             currentFilter = s?.toString()?.trim() ?: ""
             refresh()
+            if (currentFilter.length >= 2) triggerServerSearch(currentFilter)
           }
         }
       }
@@ -266,6 +289,25 @@ class FriendFragment : Fragment() {
         if (newCount > 0 && !showPendingOnly) {
           AppToast.show(ctx, "$newCount permintaan baru — buka Permintaan")
         }
+      } catch (_: Exception) {}
+    }
+  }
+
+  private var serverSearchJob: Job? = null
+  private fun triggerServerSearch(query: String) {
+    if (!isAdded) return
+    serverSearchJob?.cancel()
+    serverSearchJob = viewLifecycleOwner.lifecycleScope.launch {
+      delay(300)
+      try {
+        val ctx = context ?: return@launch
+        val app = activity?.application as? UpMeApp ?: return@launch
+        val token = com.upme.messenger.data.auth.AuthPrefs(ctx).token ?: return@launch
+        val results = app.locator.tcp.searchFriend(token, query)
+        if (results.isEmpty() || !isAdded) return@launch
+        // For now toast count; UI list still shows local search. Server results could be merged in next refresh.
+        AppToast.show(ctx, "${results.size} hasil server untuk \"$query\"")
+        // Optionally insert server results as pending suggestions (no DB write to avoid spam)
       } catch (_: Exception) {}
     }
   }

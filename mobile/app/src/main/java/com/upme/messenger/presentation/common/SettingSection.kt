@@ -132,5 +132,5 @@ class SettingSection @JvmOverloads constructor(
         }
     }
 
-    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
+    // dp via Dimens.kt
 }

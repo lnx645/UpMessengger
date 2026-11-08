@@ -24,9 +24,11 @@ import com.upme.messenger.data.local.PendingEntity
 import com.upme.messenger.data.local.TemanEntity
 import com.upme.messenger.presentation.chats.ChatAdapter
 import com.upme.messenger.presentation.chats.ChatItem
+import com.upme.messenger.presentation.common.AppSheet
 import com.upme.messenger.presentation.common.AppToast
 import com.upme.messenger.presentation.common.ClickGuard
 import com.upme.messenger.presentation.common.ConfirmDialog
+import com.upme.messenger.presentation.common.debounceClick
 import com.upme.messenger.presentation.common.setLoading
 import com.upme.messenger.util.PinValidator
 import kotlinx.coroutines.Job
@@ -232,44 +234,38 @@ class TemanFragment : Fragment() {
   private fun showTemanOptions(item: ChatItem) {
     if (!isAdded) return
     val ctx = requireContext()
-    // Long-press options: hapus / blokir / chat
-    val dialog = BottomSheetDialog(ctx, R.style.ThemeOverlay_App_BottomSheet)
-    val sheet = layoutInflater.inflate(R.layout.layout_sheet_global, null)
-    sheet.findViewById<TextView>(R.id.txtSheetTitle).text = item.name
-    sheet.findViewById<TextView>(R.id.txtSheetMessage).text = "PIN ${PinValidator.pretty(item.id)}"
-    val primary = sheet.findViewById<MaterialButton>(R.id.btnSheetPrimary)
-    val secondary = sheet.findViewById<MaterialButton>(R.id.btnSheetSecondary)
-    primary.text = "Chat"
-    secondary.text = "Hapus"
-    primary.setOnClickListener {
-      dialog.dismiss()
-      (requireActivity() as com.upme.messenger.presentation.MainActivity).openDetail(item.id, item.name)
-    }
-    secondary.setOnClickListener {
-      dialog.dismiss()
-      ConfirmDialog(ctx, "Hapus teman?", "Hapus ${item.name} (${PinValidator.pretty(item.id)}) dari daftar teman?", "Hapus", "Batal", onPositive = {
-        lifecycleScope.launch {
-          val db = (requireActivity().application as UpMeApp).locator.db
-          db.temanDao().delete(item.id)
-          context?.let { AppToast.show(it, "Teman dihapus") }
-          // server delete 0x37
-          try {
-            val app = requireActivity().application as UpMeApp
-            val authPrefs = com.upme.messenger.data.auth.AuthPrefs(requireContext())
-            val token = authPrefs.token
-            val phone = authPrefs.phone
-            if (token != null && phone != null) app.locator.tcp.deleteTeman(phone, token, item.id, false)
-          } catch (_: Exception) {}
-          view?.findViewById<RecyclerView>(R.id.list)?.let { _ ->
-            val all = db.temanDao().all()
-            myAdapter.submitList(all.map { ChatItem(it.pin, it.name, "PIN: ${PinValidator.pretty(it.pin)}", "Baru", "READ", 0, it.name.take(1).uppercase()) })
-            view?.findViewById<LinearLayout>(R.id.empty)?.visibility = if (all.isEmpty()) View.VISIBLE else View.GONE
+    // U1: migrasi ke AppSheet.show(Config) — konsisten WA-style
+    val d = AppSheet.show(ctx, AppSheet.Config(
+      title = item.name,
+      message = "PIN ${PinValidator.pretty(item.id)}",
+      primaryText = "Chat",
+      secondaryText = "Hapus",
+      onPrimary = { (requireActivity() as com.upme.messenger.presentation.MainActivity).openDetail(item.id, item.name) },
+      onSecondary = {
+        ConfirmDialog(ctx, "Hapus teman?", "Hapus ${item.name} (${PinValidator.pretty(item.id)}) dari daftar teman?", "Hapus", "Batal", onPositive = {
+          lifecycleScope.launch {
+            val db = (requireActivity().application as UpMeApp).locator.db
+            db.temanDao().delete(item.id)
+            context?.let { AppToast.show(it, "Teman dihapus") }
+            try {
+              val app = requireActivity().application as UpMeApp
+              val authPrefs = com.upme.messenger.data.auth.AuthPrefs(requireContext())
+              val token = authPrefs.token
+              val phone = authPrefs.phone
+              if (token != null && phone != null) app.locator.tcp.deleteTeman(phone, token, item.id, false)
+            } catch (_: Exception) {}
+            view?.findViewById<RecyclerView>(R.id.list)?.let { _ ->
+              val all = db.temanDao().all()
+              myAdapter.submitList(all.map { ChatItem(it.pin, it.name, "PIN: ${PinValidator.pretty(it.pin)}", "Baru", "READ", 0, it.name.take(1).uppercase()) })
+              view?.findViewById<LinearLayout>(R.id.empty)?.visibility = if (all.isEmpty()) View.VISIBLE else View.GONE
+            }
           }
-        }
-      }).show()
-    }
-    // Add blokir as extra via long-press secondary long?
-    sheet.findViewById<TextView>(R.id.txtSheetMessage).setOnLongClickListener {
+        }).show()
+      }
+    ))
+    trackedDialogs.add(d)
+    // Blokir via long-press message (retain behavior via custom view lookup)
+    d.findViewById<TextView>(R.id.txtSheetMessage)?.setOnLongClickListener {
       ConfirmDialog(ctx, "Blokir PIN?", "Blokir ${item.id} agar tidak bisa invite lagi?", "Blokir", "Batal", onPositive = {
         lifecycleScope.launch {
           val db = (requireActivity().application as UpMeApp).locator.db
@@ -288,9 +284,6 @@ class TemanFragment : Fragment() {
       }).show()
       true
     }
-    dialog.setContentView(sheet)
-    dialog.show()
-    trackedDialogs.add(dialog)
   }
 
   private fun showInviteSheet() {
@@ -402,58 +395,55 @@ class TemanFragment : Fragment() {
   }
 
   private fun showRequestSheet(pin: String) {
+    if (!isAdded) return
     val ctx = requireContext()
-    val dialog = BottomSheetDialog(ctx, R.style.ThemeOverlay_App_BottomSheet)
-    val view = layoutInflater.inflate(R.layout.layout_sheet_global, null)
-    view.findViewById<TextView>(R.id.txtSheetTitle).text = "Permintaan pertemanan"
-    view.findViewById<TextView>(R.id.txtSheetMessage).text = "PIN $pin ingin berteman. Terima?"
-    val primary = view.findViewById<MaterialButton>(R.id.btnSheetPrimary)
-    val secondary = view.findViewById<MaterialButton>(R.id.btnSheetSecondary)
-    primary.text = "Terima"
-    secondary.text = "Tolak"
-    primary.setOnClickListener {
-      if (!ClickGuard.canClick()) return@setOnClickListener
-      primary.setLoading(true, null)
-      lifecycleScope.launch {
-        try {
-          val app = requireActivity().application as UpMeApp
-          val authPrefs = com.upme.messenger.data.auth.AuthPrefs(requireContext())
-          val token = authPrefs.token
-          val phone = authPrefs.phone
-          if (token != null && phone != null) app.locator.tcp.acceptInvite(phone, token, pin)
-          val db = app.locator.db
-          db.pendingDao().delete(pin)
-          db.temanDao().upsert(TemanEntity(pin, "Teman ${pin.chunked(4).joinToString(" ")}", System.currentTimeMillis()))
-        } catch (_: Exception) {}
-        primary.setLoading(false, null)
-        dialog.dismiss()
-        context?.let { AppToast.show(it, "Teman diterima") }
-        view?.findViewById<RecyclerView>(R.id.list)?.let { _ ->
-          lifecycleScope.launch {
-            val db = (requireActivity().application as UpMeApp).locator.db
-            val all = db.pendingDao().all()
-            if (all.isEmpty()) {
-              val teman = db.temanDao().all()
-              myAdapter.submitList(teman.map { ChatItem(it.pin, it.name, "PIN: ${it.pin.chunked(4).joinToString(" ")}", "Baru", "READ", 0, it.name.take(1).uppercase()) })
+    lateinit var d: BottomSheetDialog
+    d = AppSheet.show(ctx, AppSheet.Config(
+      title = "Permintaan pertemanan",
+      message = "PIN ${PinValidator.pretty(pin)} ingin berteman. Terima?",
+      primaryText = "Terima",
+      secondaryText = "Tolak",
+      onPrimary = {
+        val btn = d.findViewById<MaterialButton>(R.id.btnSheetPrimary)
+        btn?.setLoading(true, null)
+        lifecycleScope.launch {
+          try {
+            val app = requireActivity().application as UpMeApp
+            val authPrefs = com.upme.messenger.data.auth.AuthPrefs(requireContext())
+            val token = authPrefs.token
+            val phone = authPrefs.phone
+            if (token != null && phone != null) app.locator.tcp.acceptInvite(phone, token, pin)
+            val db = app.locator.db
+            db.pendingDao().delete(pin)
+            db.temanDao().upsert(TemanEntity(pin, "Teman ${PinValidator.pretty(pin)}", System.currentTimeMillis()))
+          } catch (_: Exception) {}
+          btn?.setLoading(false, null)
+          d.dismiss()
+          context?.let { AppToast.show(it, "Teman diterima") }
+          view?.findViewById<RecyclerView>(R.id.list)?.let { _ ->
+            lifecycleScope.launch {
+              val db = (requireActivity().application as UpMeApp).locator.db
+              val all = db.pendingDao().all()
+              if (all.isEmpty()) {
+                val teman = db.temanDao().all()
+                myAdapter.submitList(teman.map { ChatItem(it.pin, it.name, "PIN: ${PinValidator.pretty(it.pin)}", "Baru", "READ", 0, it.name.take(1).uppercase()) })
+              }
             }
           }
         }
+      },
+      onSecondary = {
+        lifecycleScope.launch {
+          try {
+            val app = requireActivity().application as UpMeApp
+            val authPrefs = com.upme.messenger.data.auth.AuthPrefs(requireContext())
+            if (authPrefs.token != null && authPrefs.phone != null) app.locator.tcp.rejectInvite(authPrefs.phone!!, authPrefs.token!!, pin)
+            app.locator.db.pendingDao().delete(pin)
+          } catch (_: Exception) {}
+          context?.let { AppToast.show(it, "Ditolak") }
+        }
       }
-    }
-    secondary.setOnClickListener {
-      if (!ClickGuard.canClick()) return@setOnClickListener
-      lifecycleScope.launch {
-        try {
-          val app = requireActivity().application as UpMeApp
-          val authPrefs = com.upme.messenger.data.auth.AuthPrefs(requireContext())
-          if (authPrefs.token != null && authPrefs.phone != null) app.locator.tcp.rejectInvite(authPrefs.phone!!, authPrefs.token!!, pin)
-          app.locator.db.pendingDao().delete(pin)
-        } catch (_: Exception) {}
-        dialog.dismiss()
-        context?.let { AppToast.show(it, "Ditolak") }
-      }
-    }
-    dialog.setContentView(view)
-    dialog.show()
+    ))
+    trackedDialogs.add(d)
   }
 }

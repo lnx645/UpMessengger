@@ -53,5 +53,5 @@ class AppCard @JvmOverloads constructor(
         radius = dp(12f)
     }
 
-    private fun dp(v: Float): Float = v * resources.displayMetrics.density
+    // dp via Dimens.kt extension
 }

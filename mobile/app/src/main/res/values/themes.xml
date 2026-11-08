@@ -18,4 +18,20 @@
     <style name="ThemeOverlay.App.BottomSheet" parent="ThemeOverlay.Material3.BottomSheetDialog">
         <item name="bottomSheetStyle">@style/Widget.Material3.BottomSheet</item>
     </style>
+    <!-- Reusable button styles — U6: ganti warna brand cukup di sini -->
+    <style name="Widget.UpMe.Button.Primary" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/upme_green_dark</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="android:fontFamily">@font/manrope_medium</item>
+    </style>
+    <style name="Widget.UpMe.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="strokeColor">@color/upme_dark</item>
+        <item name="android:textColor">@color/upme_dark</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="android:fontFamily">@font/manrope_medium</item>
+    </style>
+    <style name="Widget.UpMe.Button.Primary.Pill" parent="Widget.UpMe.Button.Primary">
+        <item name="cornerRadius">18dp</item>
+    </style>
 </resources>

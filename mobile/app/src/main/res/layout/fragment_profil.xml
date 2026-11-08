@@ -12,8 +12,8 @@
         android:orientation="vertical"
         android:padding="12dp">
 
-        <!-- Header: avatar HE + nama + PIN - persis Parrot -->
-        <com.google.android.material.card.MaterialCardView
+        <!-- Header: avatar HE + nama + PIN — AppCard U2 -->
+        <com.upme.messenger.presentation.common.AppCard
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardCornerRadius="20dp"
@@ -108,10 +108,10 @@
                         android:alpha="0.6" />
                 </LinearLayout>
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </com.upme.messenger.presentation.common.AppCard>
 
         <!-- Card QR + Profil -->
-        <com.google.android.material.card.MaterialCardView
+        <com.upme.messenger.presentation.common.AppCard
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardCornerRadius="16dp"
@@ -163,11 +163,10 @@
                         android:src="@drawable/ic_chevron" />
                 </LinearLayout>
 
-                <View
+                <com.upme.messenger.presentation.common.AppDivider
                     android:layout_width="match_parent"
-                    android:layout_height="0.7dp"
-                    android:layout_marginStart="66dp"
-                    android:background="#0F000000" />
+                    android:layout_height="wrap_content"
+                    app:insetStart="66dp" />
 
                 <LinearLayout
                     android:id="@+id/rowProfilDetail"
@@ -207,10 +206,10 @@
                         android:src="@drawable/ic_chevron" />
                 </LinearLayout>
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </com.upme.messenger.presentation.common.AppCard>
 
         <!-- Card Pengaturan -->
-        <com.google.android.material.card.MaterialCardView
+        <com.upme.messenger.presentation.common.AppCard
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardCornerRadius="16dp"
@@ -229,35 +228,35 @@
                     <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginStart="14dp" android:text="Privasi &amp; Keamanan" android:textColor="#111B21" android:textSize="15sp" />
                     <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@drawable/ic_chevron" />
                 </LinearLayout>
-                <View android:layout_width="match_parent" android:layout_height="0.7dp" android:layout_marginStart="66dp" android:background="#0F000000" />
+                <com.upme.messenger.presentation.common.AppDivider android:layout_width="match_parent" android:layout_height="wrap_content" app:insetStart="66dp" />
                 <LinearLayout android:layout_width="match_parent" android:layout_height="56dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:clickable="true" android:focusable="true" android:foreground="?attr/selectableItemBackground">
                     <FrameLayout android:layout_width="36dp" android:layout_height="36dp" android:background="@drawable/bg_icon_blue"><ImageView android:layout_width="20dp" android:layout_height="20dp" android:layout_gravity="center" android:src="@drawable/ic_devices" /></FrameLayout>
                     <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginStart="14dp" android:text="Perangkat tertaut" android:textColor="#111B21" android:textSize="15sp" />
                     <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@drawable/ic_chevron" />
                 </LinearLayout>
-                <View android:layout_width="match_parent" android:layout_height="0.7dp" android:layout_marginStart="66dp" android:background="#0F000000" />
+                <com.upme.messenger.presentation.common.AppDivider android:layout_width="match_parent" android:layout_height="wrap_content" app:insetStart="66dp" />
                 <LinearLayout android:layout_width="match_parent" android:layout_height="56dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:clickable="true" android:focusable="true" android:foreground="?attr/selectableItemBackground">
                     <FrameLayout android:layout_width="36dp" android:layout_height="36dp" android:background="@drawable/bg_icon_red"><ImageView android:layout_width="20dp" android:layout_height="20dp" android:layout_gravity="center" android:src="@drawable/ic_bell" /></FrameLayout>
                     <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginStart="14dp" android:text="Notifikasi" android:textColor="#111B21" android:textSize="15sp" />
                     <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@drawable/ic_chevron" />
                 </LinearLayout>
-                <View android:layout_width="match_parent" android:layout_height="0.7dp" android:layout_marginStart="66dp" android:background="#0F000000" />
+                <com.upme.messenger.presentation.common.AppDivider android:layout_width="match_parent" android:layout_height="wrap_content" app:insetStart="66dp" />
                 <LinearLayout android:layout_width="match_parent" android:layout_height="56dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:clickable="true" android:focusable="true" android:foreground="?attr/selectableItemBackground">
                     <FrameLayout android:layout_width="36dp" android:layout_height="36dp" android:background="@drawable/bg_icon_orange"><ImageView android:layout_width="20dp" android:layout_height="20dp" android:layout_gravity="center" android:src="@drawable/ic_palette" /></FrameLayout>
                     <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginStart="14dp" android:text="Tampilan" android:textColor="#111B21" android:textSize="15sp" />
                     <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@drawable/ic_chevron" />
                 </LinearLayout>
-                <View android:layout_width="match_parent" android:layout_height="0.7dp" android:layout_marginStart="66dp" android:background="#0F000000" />
+                <com.upme.messenger.presentation.common.AppDivider android:layout_width="match_parent" android:layout_height="wrap_content" app:insetStart="66dp" />
                 <LinearLayout android:layout_width="match_parent" android:layout_height="56dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="16dp" android:clickable="true" android:focusable="true" android:foreground="?attr/selectableItemBackground">
                     <FrameLayout android:layout_width="36dp" android:layout_height="36dp" android:background="@drawable/bg_icon_green"><ImageView android:layout_width="20dp" android:layout_height="20dp" android:layout_gravity="center" android:src="@drawable/ic_globe" /></FrameLayout>
                     <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginStart="14dp" android:text="Bahasa" android:textColor="#111B21" android:textSize="15sp" />
                     <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@drawable/ic_chevron" />
                 </LinearLayout>
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </com.upme.messenger.presentation.common.AppCard>
 
         <!-- Manajemen Penyimpanan - card terpisah seperti Parrot -->
-        <com.google.android.material.card.MaterialCardView
+        <com.upme.messenger.presentation.common.AppCard
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardCornerRadius="16dp"
@@ -303,10 +302,10 @@
                     android:layout_height="18dp"
                     android:src="@drawable/ic_chevron" />
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </com.upme.messenger.presentation.common.AppCard>
 
         <!-- Invite via PIN - tetap ada tapi compact di bawah -->
-        <com.google.android.material.card.MaterialCardView
+        <com.upme.messenger.presentation.common.AppCard
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardCornerRadius="16dp"
@@ -355,26 +354,25 @@
                     <FrameLayout android:layout_width="wrap_content" android:layout_height="48dp" android:layout_marginStart="8dp">
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/invite"
+                            style="@style/Widget.UpMe.Button.Primary"
                             android:layout_width="wrap_content"
                             android:layout_height="48dp"
-                            android:text="Invite"
-                            app:cornerRadius="10dp"
-                            android:backgroundTint="#9C27B0" />
+                            android:text="Invite" />
                         <ProgressBar android:id="@+id/progressInvite" android:layout_width="20dp" android:layout_height="20dp" android:layout_gravity="center" android:visibility="gone" android:indeterminateTint="#FFFFFF" />
                     </FrameLayout>
                 </LinearLayout>
 
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginTop="10dp">
                     <FrameLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp" android:layout_marginEnd="6dp">
-                        <com.google.android.material.button.MaterialButton android:id="@+id/btnCopy" android:layout_width="match_parent" android:layout_height="match_parent" android:text="Salin PIN" android:textSize="12sp" app:cornerRadius="18dp" android:backgroundTint="#111B21" app:icon="@drawable/ic_qr_code" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnCopy" style="@style/Widget.UpMe.Button.Primary.Pill" android:layout_width="match_parent" android:layout_height="match_parent" android:text="Salin PIN" android:textSize="12sp" app:icon="@drawable/ic_qr_code" />
                         <ProgressBar android:id="@+id/progressCopy" android:layout_width="16dp" android:layout_height="16dp" android:layout_gravity="center" android:visibility="gone" android:indeterminateTint="#FFFFFF" />
                     </FrameLayout>
                     <FrameLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="36dp">
-                        <com.google.android.material.button.MaterialButton android:id="@+id/btnShare" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent" android:layout_height="match_parent" android:text="Bagikan" android:textSize="12sp" app:cornerRadius="18dp" app:strokeColor="#111B21" android:textColor="#111B21" />
+                        <com.google.android.material.button.MaterialButton android:id="@+id/btnShare" style="@style/Widget.UpMe.Button.Outlined" android:layout_width="match_parent" android:layout_height="match_parent" android:text="Bagikan" android:textSize="12sp" />
                         <ProgressBar android:id="@+id/progressShare" android:layout_width="16dp" android:layout_height="16dp" android:layout_gravity="center" android:visibility="gone" android:indeterminateTint="#111B21" />
                     </FrameLayout>
                 </LinearLayout>
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </com.upme.messenger.presentation.common.AppCard>
     </LinearLayout>
 </ScrollView>

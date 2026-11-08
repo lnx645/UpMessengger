@@ -1,6 +1,7 @@
 package com.upme.messenger.presentation.common
 
 import android.content.Context
+import android.graphics.Typeface
 import android.util.AttributeSet
 import android.view.Gravity
 import android.widget.LinearLayout
@@ -86,8 +87,8 @@ class AppSwitch @JvmOverloads constructor(
             resources, android.R.drawable.list_selector_background, context.theme
         )
 
-        val manrope = ResourcesCompat.getFont(context, R.font.manrope_regular)
-        val manropeMedium = ResourcesCompat.getFont(context, R.font.manrope_medium)
+        val manrope = FontCache.regular(context)
+        val manropeMedium = FontCache.medium(context)
 
         val textContainer = LinearLayout(context).apply {
             orientation = VERTICAL
@@ -154,5 +155,17 @@ class AppSwitch @JvmOverloads constructor(
         }
     }
 
-    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
+    // dp via Dimens.kt
+    private object FontCache {
+        var regular: Typeface? = null
+        var medium: Typeface? = null
+        fun regular(c: Context): Typeface? {
+            if (regular == null) regular = ResourcesCompat.getFont(c, R.font.manrope_regular)
+            return regular
+        }
+        fun medium(c: Context): Typeface? {
+            if (medium == null) medium = ResourcesCompat.getFont(c, R.font.manrope_medium)
+            return medium
+        }
+    }
 }

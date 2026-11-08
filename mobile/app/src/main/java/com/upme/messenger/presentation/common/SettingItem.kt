@@ -1,6 +1,7 @@
 package com.upme.messenger.presentation.common
 
 import android.content.Context
+import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
 import android.view.Gravity
@@ -106,8 +107,8 @@ class SettingItem @JvmOverloads constructor(
         context.theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
         foreground = ResourcesCompat.getDrawable(resources, outValue.resourceId, context.theme)
 
-        val manrope = ResourcesCompat.getFont(context, R.font.manrope_regular)
-        val manropeMedium = ResourcesCompat.getFont(context, R.font.manrope_medium)
+        val manrope = FontCache.regular(context)
+        val manropeMedium = FontCache.medium(context)
 
         // Icon box 36dp, rounded 10dp
         iconBox = FrameLayout(context).apply {
@@ -190,7 +191,20 @@ class SettingItem @JvmOverloads constructor(
         iconBox.background = d
     }
 
-    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
+    // dp via Dimens.kt
+
+    private object FontCache {
+        var regular: Typeface? = null
+        var medium: Typeface? = null
+        fun regular(c: Context): Typeface? {
+            if (regular == null) regular = ResourcesCompat.getFont(c, R.font.manrope_regular)
+            return regular
+        }
+        fun medium(c: Context): Typeface? {
+            if (medium == null) medium = ResourcesCompat.getFont(c, R.font.manrope_medium)
+            return medium
+        }
+    }
 
     /** Preset warna icon selaras drawable bg_icon_* dan colors.xml. */
     object IconBg {

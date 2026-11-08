@@ -11,32 +11,56 @@ import com.upme.messenger.util.HostUtil
 /** WhatsApp flow: requestOtp (0x10) -> verifyOtp (0x11) -> [0x14 2FA jika aktif] -> auth (0x02). JWT RS256. */
 class AuthRepository(private val host: String = "127.0.0.1", private val port: Int = 5222) {
 
+  class NetworkError(msg: String, cause: Throwable? = null) : java.io.IOException(msg, cause)
+
   private suspend fun frame(type: Int, payload: ByteArray): Pair<Int, ByteArray> = withContext(Dispatchers.IO) {
-    // Fail-closed: TLS only jika host adalah TLS host; tidak pernah downgrade ke cleartext
-    val isDevHost = HostUtil.isDevHost(host)
-    val s = if (isDevHost) {
-      Socket(host, port).apply { soTimeout = 8000 }
-    } else {
-      // Prod: hanya TLS, tidak ada fallback cleartext
-      val hosts = HostUtil.resolveHosts(host)
-      var last: Socket? = null
-      var err: Exception? = null
-      for (h in hosts) {
-        try {
-          last = SSLSocketFactory.getDefault().createSocket(h, port)
-          break
-        } catch (ex: Exception) { err = ex }
+    try {
+      val isDevHost = HostUtil.isDevHost(host)
+      val s = if (isDevHost) {
+        // Hotspot: debuggable fallback ke 192.168.* jika 127.0.0.1 gagal (HP hotspot tidak punya reverse)
+        val hosts = HostUtil.resolveHosts(host)
+        var last: Socket? = null
+        var err: Exception? = null
+        for (h in hosts) {
+          try {
+            last = Socket(h, port).apply { soTimeout = 8000 }
+            break
+          } catch (ex: Exception) { err = ex }
+        }
+        last ?: throw NetworkError("network_error", err)
+      } else {
+        val hosts = HostUtil.resolveHosts(host)
+        var last: Socket? = null
+        var err: Exception? = null
+        for (h in hosts) {
+          try {
+            last = SSLSocketFactory.getDefault().createSocket(h, port)
+            break
+          } catch (ex: Exception) { err = ex }
+        }
+        last?.apply { soTimeout = 8000 } ?: throw NetworkError("network_error", err)
       }
-      last?.apply { soTimeout = 8000 } ?: throw err ?: Exception("TLS failed - no fallback to cleartext")
-    }
-    val out = DataOutputStream(s.getOutputStream())
-    val inp = DataInputStream(s.getInputStream())
-    out.writeInt(payload.size + 1); out.writeByte(type); out.write(payload); out.flush()
-    val len = inp.readInt(); val t = inp.readByte().toInt() and 0xFF
-    val body = ByteArray(len - 1); inp.readFully(body)
-    s.close()
-    t to body
+      val out = DataOutputStream(s.getOutputStream())
+      val inp = DataInputStream(s.getInputStream())
+      try {
+        out.writeInt(payload.size + 1); out.writeByte(type); out.write(payload); out.flush()
+        val len = inp.readInt(); val t = inp.readByte().toInt() and 0xFF
+        val body = ByteArray(len - 1); inp.readFully(body)
+        s.close()
+        t to body
+      } catch (e: java.io.IOException) {
+        try { s.close() } catch (_: Exception) {}
+        throw NetworkError("network_error", e)
+      } catch (e: Exception) {
+        try { s.close() } catch (_: Exception) {}
+        if (e is java.io.IOException) throw NetworkError("network_error", e) else throw e
+      }
+    } catch (e: NetworkError) { throw e }
+    catch (e: java.io.IOException) { throw NetworkError("network_error", e) }
+    catch (e: java.net.SocketException) { throw NetworkError("network_error", e) }
   }
+
+  private fun isNetwork(e: Throwable): Boolean = e is NetworkError || e is java.io.IOException || e is java.net.SocketException || e.message == "network_error"
 
   suspend fun requestOtp(phone: String): Result<Unit> {
     return try {
@@ -46,7 +70,9 @@ class AuthRepository(private val host: String = "127.0.0.1", private val port: I
         val err = try { JSONObject(String(body)).optString("error", "unknown") } catch (_: Exception) { "unknown" }
         Result.failure(Exception(err))
       }
-    } catch (e: Exception) { Result.failure(e) }
+    } catch (e: Exception) {
+      if (isNetwork(e)) Result.failure(NetworkError("network_error", e)) else Result.failure(e)
+    }
   }
 
   data class AuthOk(val phone: String, val pin: String, val token: String, val name: String)
@@ -71,7 +97,9 @@ class AuthRepository(private val host: String = "127.0.0.1", private val port: I
           VerifyResult.Error(err)
         }
       }
-    } catch (e: Exception) { VerifyResult.Error(e.message ?: "unknown") }
+    } catch (e: Exception) {
+      if (isNetwork(e)) VerifyResult.Error("network_error") else VerifyResult.Error(e.message ?: "unknown")
+    }
   }
 
   // kompatibilitas lama
@@ -130,7 +158,9 @@ class AuthRepository(private val host: String = "127.0.0.1", private val port: I
         val err = try { JSONObject(String(body)).optString("error", "unauthenticated") } catch (_: Exception) { "unauthenticated" }
         Result.failure(Exception(err))
       }
-    } catch (e: Exception) { Result.failure(e) }
+    } catch (e: Exception) {
+      if (isNetwork(e)) Result.failure(NetworkError("network_error", e)) else Result.failure(e)
+    }
   }
 
   // X25519 identity publish

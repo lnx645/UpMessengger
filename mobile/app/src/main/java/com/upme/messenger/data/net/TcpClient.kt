@@ -14,11 +14,18 @@ class TcpClient(private val dao: MessageDao, private val host: String = "127.0.0
   fun close() { scope.cancel() }
 
   private fun openSocket(): Socket {
-    return if (HostUtil.isDevHost(host)) {
-      Socket(host, port).apply { soTimeout = 4000 }
-    } else {
-      SSLSocketFactory.getDefault().createSocket(host, port).apply { soTimeout = 4000 }
+    val isDev = HostUtil.isDevHost(host)
+    val hosts = HostUtil.resolveHosts(host)
+    var last: Socket? = null
+    var err: Exception? = null
+    for (h in hosts) {
+      try {
+        last = if (isDev) Socket(h, port).apply { soTimeout = 4000 }
+               else SSLSocketFactory.getDefault().createSocket(h, port).apply { soTimeout = 4000 }
+        break
+      } catch (e: Exception) { err = e }
     }
+    return last ?: throw err ?: java.io.IOException("network_error")
   }
 
   private fun authSocket(s: Socket, token: String): Boolean {

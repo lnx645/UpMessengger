@@ -12,11 +12,17 @@ object HostUtil {
     }
 
     fun isDevHost(host: String): Boolean =
-        debuggable && (host == "127.0.0.1" || host == "10.0.2.2" || host == "localhost")
+        debuggable && (
+            host == "127.0.0.1" || host == "10.0.2.2" || host == "localhost" ||
+            host.startsWith("192.168.") || host.startsWith("10.") || host.startsWith("172.")
+        )
 
-    /** Prod: hanya primary host (TLS). IP privat dev hanya bila debuggable agar tidak bocor ke release. */
-    fun resolveHosts(primary: String): List<String> =
-        if (isDevHost(primary)) listOf(primary)
-        else if (debuggable) (listOf(primary) + listOf("192.168.70.92", "192.168.70.93", "192.168.70.127")).distinct()
+    /** Hotspot debug: primary 127.0.0.1 fallback ke IP host via WiFi agar 2 HP via hotspot bisa, prod tetap TLS */
+    fun resolveHosts(primary: String): List<String> {
+        val hotspotFallback = listOf("192.168.70.92", "192.168.70.93", "192.168.70.127", "192.168.70.93")
+        return if (isDevHost(primary)) {
+            if (debuggable) (listOf(primary) + hotspotFallback).distinct() else listOf(primary)
+        } else if (debuggable) (listOf(primary) + hotspotFallback).distinct()
         else listOf(primary)
+    }
 }

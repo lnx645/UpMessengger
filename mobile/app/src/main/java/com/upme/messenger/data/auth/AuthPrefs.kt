@@ -28,12 +28,16 @@ class AuthPrefs(ctx: Context) {
         EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM)
     } catch (_: Exception) {
-      // Last resort: in-memory prefs yang tidak persist setelah process kill — jauh lebih aman daripada plaintext file
-      InMemoryPrefs()
+      // Fallback persist file (bukan RAM) — cegah token hilang saat kill; trade-off: plaintext tapi tidak hilang
+      try {
+        ctx.getSharedPreferences("auth_enc_fallback", Context.MODE_PRIVATE)
+      } catch (_: Exception) {
+        InMemoryPrefs()
+      }
     }
   }
 
-  // In-memory fallback yang tidak menulis ke disk (aman: tidak bocor jika device di-root dan file di-dump)
+  // In-memory fallback (last resort)
   private class InMemoryPrefs : SharedPreferences {
     private val m = mutableMapOf<String, String?>()
     private val listeners = mutableSetOf<SharedPreferences.OnSharedPreferenceChangeListener>()

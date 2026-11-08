@@ -51,14 +51,19 @@ class FriendFragment : Fragment() {
   private val trackedDialogs = mutableSetOf<BottomSheetDialog>()
   private val qrLauncher = registerForActivityResult(ScanContract()) { result ->
     val content = result.contents ?: return@registerForActivityResult
-    // QR is upme:<hash>:<pin> or plain 8 hex
     val candidate = content.trim()
     val raw = if (candidate.contains(":")) candidate.substringAfterLast(":").trim().uppercase().replace(" ", "")
               else candidate.uppercase().replace(" ", "")
     if (PinValidator.isValid(raw)) {
       context?.let { AppToast.show(it, "PIN ${PinValidator.pretty(raw)} terdeteksi") }
-      // Buka sheet invite dengan PIN terisi — langsung aksi
-      if (isAdded) showInviteSheetWithPrefill(raw)
+      // Jika sheet invite sudah terbuka (scan dari sheet), isi input-nya saja — jangan buka sheet baru (anti double)
+      val sheetInput = pendingSheet?.findViewById<EditText>(R.id.inputPinInvite)
+      if (sheetInput != null) {
+        sheetInput.setText(raw)
+        sheetInput.setSelection(raw.length)
+      } else if (isAdded) {
+        showInviteSheetWithPrefill(raw)
+      }
     } else {
       context?.let { AppToast.show(it, "QR tidak valid: $candidate") }
     }
@@ -257,21 +262,54 @@ class FriendFragment : Fragment() {
         }
       } else {
         rv.adapter = myAdapter
-        val teman = if (currentFilter.isBlank()) db.temanDao().all() else db.temanDao().search(currentFilter.uppercase())
-        if (teman.isEmpty()) {
+        val local = if (currentFilter.isBlank()) db.temanDao().all() else db.temanDao().search(currentFilter.uppercase())
+        // Update badge counts (1-6 #3)
+        updateBadges(db)
+        // 5: merge server results when filtering and local empty
+        val teman = local
+        val merged = if (currentFilter.isNotBlank() && teman.isEmpty() && serverResults.isNotEmpty()) {
+          // Show server results as teman list when local search yields nothing
+          serverResults
+        } else if (currentFilter.isNotBlank() && serverResults.isNotEmpty()) {
+          // Local + server dedup by pin
+          val pinSet = teman.map { it.pin }.toSet()
+          teman.map {
+            val isPlaceholder = it.name.isBlank() || it.name.startsWith("Teman ") || it.name == it.pin
+            val displayName = if (isPlaceholder) PinValidator.pretty(it.pin) else it.name
+            val preview = if (isPlaceholder) "Ketuk untuk chat" else "📌 ${PinValidator.pretty(it.pin)}"
+            ChatItem(it.pin, displayName, preview, "", "", 0, displayName.take(1).uppercase())
+          } + serverResults.filter { it.id !in pinSet }
+        } else teman.map {
+          val isPlaceholder = it.name.isBlank() || it.name.startsWith("Teman ") || it.name == it.pin
+          val displayName = if (isPlaceholder) PinValidator.pretty(it.pin) else it.name
+          val preview = if (isPlaceholder) "Ketuk untuk chat" else "📌 ${PinValidator.pretty(it.pin)}"
+          ChatItem(it.pin, displayName, preview, "", "", 0, displayName.take(1).uppercase())
+        }
+        if (merged.isEmpty()) {
           emptyLegacy?.visibility = View.VISIBLE
           emptyState?.visibility = View.VISIBLE
+          // 6: offline hint when no results and not connected
+          if (currentFilter.isNotBlank() && !isOnline()) {
+            emptyState?.subtitle = "Offline — cek koneksi hotspot 192.168.70.92"
+          }
           myAdapter.submitList(emptyList())
         } else {
           emptyLegacy?.visibility = View.GONE
           emptyState?.visibility = View.GONE
-          val items = teman.map {
-            val displayName = it.name.takeIf { n -> n.isNotBlank() && !n.startsWith("Teman ") } ?: it.name
-            ChatItem(it.pin, displayName, "📌 PIN: ${PinValidator.pretty(it.pin)}", "", "", 0, displayName.take(1).uppercase())
-          }
-          myAdapter.submitList(items)
+          myAdapter.submitList(merged)
         }
       }
+    }
+  }
+
+  private fun updateBadges(db: com.upme.messenger.data.local.UpMeDb) {
+    // Cheap count query (no list load) — called from refresh
+    lifecycleScope.launch {
+      try {
+        val pendingCount = db.pendingDao().all().size
+        val chipPending = view?.findViewById<Chip>(R.id.chipPending)
+        chipPending?.text = if (pendingCount > 0) "Permintaan ($pendingCount)" else "Permintaan"
+      } catch (_: Exception) {}
     }
   }
 
@@ -285,6 +323,8 @@ class FriendFragment : Fragment() {
         val token = authPrefs.token ?: return@launch
         val phone = authPrefs.phone ?: return@launch
         val raw = app.locator.tcp.syncPending(phone, token)
+        // Always update badge even if empty
+        updateBadges(app.locator.db)
         if (raw.isEmpty()) return@launch
         val db = app.locator.db
         for (m in raw) {
@@ -305,6 +345,7 @@ class FriendFragment : Fragment() {
   }
 
   private var serverSearchJob: Job? = null
+  private var serverResults: List<ChatItem> = emptyList()
   private fun triggerServerSearch(query: String) {
     if (!isAdded) return
     serverSearchJob?.cancel()
@@ -315,18 +356,29 @@ class FriendFragment : Fragment() {
         val app = activity?.application as? UpMeApp ?: return@launch
         val token = com.upme.messenger.data.auth.AuthPrefs(ctx).token ?: return@launch
         val results = app.locator.tcp.searchFriend(token, query)
-        if (results.isEmpty() || !isAdded) return@launch
-        // For now toast count; UI list still shows local search. Server results could be merged in next refresh.
-        AppToast.show(ctx, "${results.size} hasil server untuk \"$query\"")
-        // Optionally insert server results as pending suggestions (no DB write to avoid spam)
-      } catch (_: Exception) {}
+        if (!isAdded) return@launch
+        if (results.isEmpty()) {
+          serverResults = emptyList()
+          AppToast.show(ctx, "Tidak ada hasil server untuk \"$query\"")
+        } else {
+          serverResults = results.map {
+            val pin = it["pin"] ?: ""
+            val name = it["name"]?.takeIf { n -> n.isNotBlank() } ?: PinValidator.pretty(pin)
+            ChatItem(pin, name, "Server • ${PinValidator.pretty(pin)} • Tap untuk invite", "", "", 0, name.take(1).uppercase())
+          }
+          AppToast.show(ctx, "${results.size} hasil server untuk \"$query\"")
+        }
+        // Merge into list if still filtering
+        if (currentFilter.isNotBlank() && !showPendingOnly) refresh()
+      } catch (_: Exception) {
+        serverResults = emptyList()
+      }
     }
   }
 
   private fun showTemanOptions(item: ChatItem) {
     if (!isAdded) return
     val ctx = requireContext()
-    // U1: migrasi ke AppSheet.show(Config) — konsisten WA-style
     val d = AppSheet.show(ctx, AppSheet.Config(
       title = item.name,
       message = "PIN ${PinValidator.pretty(item.id)}",
@@ -356,27 +408,71 @@ class FriendFragment : Fragment() {
       }
     ))
     trackedDialogs.add(d)
-    // Blokir via long-press message (retain behavior via custom view lookup)
-    d.findViewById<TextView>(R.id.txtSheetMessage)?.setOnLongClickListener {
-      ConfirmDialog(ctx, "Blokir PIN?", "Blokir ${item.id} agar tidak bisa invite lagi?", "Blokir", "Batal", onPositive = {
-        lifecycleScope.launch {
-          val db = (requireActivity().application as UpMeApp).locator.db
-          db.temanDao().delete(item.id)
-          try {
-            val app = requireActivity().application as UpMeApp
-            val authPrefs = com.upme.messenger.data.auth.AuthPrefs(requireContext())
-            if (authPrefs.token != null && authPrefs.phone != null) app.locator.tcp.deleteTeman(authPrefs.phone!!, authPrefs.token!!, item.id, true)
-          } catch (_: Exception) {}
-          context?.let { AppToast.show(it, "PIN diblokir") }
-          view?.findViewById<RecyclerView>(R.id.list)?.let {
-            val all = db.temanDao().all()
-            myAdapter.submitList(all.map { ChatItem(it.pin, it.name, "PIN: ${PinValidator.pretty(it.pin)}", "Baru", "READ", 0, it.name.take(1).uppercase()) })
-          }
+    // 4: Blokir eksplisit — tambah tombol Blokir di bawah Hapus (visible, bukan long-press hidden)
+    try {
+      val container = d.findViewById<android.view.View>(R.id.txtSheetMessage)?.parent as? android.view.ViewGroup
+      val blokirBtn = android.widget.TextView(ctx).apply {
+        text = "Blokir"
+        textSize = 15f
+        gravity = android.view.Gravity.CENTER
+        setTextColor(0xFFD32F2F.toInt())
+        setPadding(dp(16), dp(12), dp(16), dp(12))
+        isClickable = true
+        isFocusable = true
+        val outValue = android.util.TypedValue()
+        context.theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
+        background = androidx.core.content.res.ResourcesCompat.getDrawable(resources, outValue.resourceId, context.theme)
+        setOnClickListener {
+          d.dismiss()
+          ConfirmDialog(ctx, "Blokir PIN?", "Blokir ${item.id} agar tidak bisa invite lagi?", "Blokir", "Batal", onPositive = {
+            lifecycleScope.launch {
+              val db = (requireActivity().application as UpMeApp).locator.db
+              db.temanDao().delete(item.id)
+              try {
+                val app = requireActivity().application as UpMeApp
+                val authPrefs = com.upme.messenger.data.auth.AuthPrefs(requireContext())
+                if (authPrefs.token != null && authPrefs.phone != null) app.locator.tcp.deleteTeman(authPrefs.phone!!, authPrefs.token!!, item.id, true)
+              } catch (_: Exception) {}
+              context?.let { AppToast.show(it, "PIN diblokir") }
+              view?.findViewById<RecyclerView>(R.id.list)?.let {
+                val all = db.temanDao().all()
+                myAdapter.submitList(all.map { ChatItem(it.pin, it.name, "PIN: ${PinValidator.pretty(it.pin)}", "Baru", "READ", 0, it.name.take(1).uppercase()) })
+              }
+            }
+          }).show()
         }
-      }).show()
-      true
+      }
+      container?.addView(blokirBtn)
+    } catch (_: Exception) {
+      // fallback: long-press still works
+      d.findViewById<TextView>(R.id.txtSheetMessage)?.setOnLongClickListener {
+        ConfirmDialog(ctx, "Blokir PIN?", "Blokir ${item.id} agar tidak bisa invite lagi?", "Blokir", "Batal", onPositive = {
+          lifecycleScope.launch {
+            val db = (requireActivity().application as UpMeApp).locator.db
+            db.temanDao().delete(item.id)
+            try {
+              val app = requireActivity().application as UpMeApp
+              val authPrefs = com.upme.messenger.data.auth.AuthPrefs(requireContext())
+              if (authPrefs.token != null && authPrefs.phone != null) app.locator.tcp.deleteTeman(authPrefs.phone!!, authPrefs.token!!, item.id, true)
+            } catch (_: Exception) {}
+            context?.let { AppToast.show(it, "PIN diblokir") }
+            view?.findViewById<RecyclerView>(R.id.list)?.let {
+              val all = db.temanDao().all()
+              myAdapter.submitList(all.map { ChatItem(it.pin, it.name, "PIN: ${PinValidator.pretty(it.pin)}", "Baru", "READ", 0, it.name.take(1).uppercase()) })
+            }
+          }
+        }).show()
+        true
+      }
     }
   }
+  private fun isOnline(): Boolean {
+    val cm = context?.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager ?: return true
+    val n = cm.activeNetwork ?: return false
+    val caps = cm.getNetworkCapabilities(n) ?: return false
+    return caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+  }
+  private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
   private fun showInviteSheet() {
     if (!isAdded) return

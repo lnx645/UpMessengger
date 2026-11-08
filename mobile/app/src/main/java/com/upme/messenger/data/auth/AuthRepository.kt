@@ -75,7 +75,7 @@ class AuthRepository(private val host: String = "127.0.0.1", private val port: I
     }
   }
 
-  data class AuthOk(val phone: String, val pin: String, val token: String, val name: String)
+  data class AuthOk(val phone: String, val pin: String, val token: String, val name: String, val refreshToken: String? = null)
   sealed class VerifyResult {
     data class Success(val ok: AuthOk) : VerifyResult()
     data class NeedTwoFa(val phone: String) : VerifyResult()
@@ -89,7 +89,7 @@ class AuthRepository(private val host: String = "127.0.0.1", private val port: I
       when (t) {
         0x13 -> {
           val j = JSONObject(String(body))
-          VerifyResult.Success(AuthOk(j.getString("phone"), j.getString("pin"), j.getString("token"), j.getString("name")))
+          VerifyResult.Success(AuthOk(j.getString("phone"), j.getString("pin"), j.getString("token"), j.getString("name"), j.optString("refresh_token", "").takeIf { it.isNotEmpty() }))
         }
         0x14 -> VerifyResult.NeedTwoFa(phone)
         else -> {
@@ -117,12 +117,14 @@ class AuthRepository(private val host: String = "127.0.0.1", private val port: I
       val (t, body) = frame(0x14, payload)
       if (t == 0x13) {
         val j = JSONObject(String(body))
-        Result.success(AuthOk(j.getString("phone"), j.getString("pin"), j.getString("token"), j.getString("name")))
+        Result.success(AuthOk(j.getString("phone"), j.getString("pin"), j.getString("token"), j.optString("name",""), j.optString("refresh_token","").takeIf{it.isNotEmpty()}))
       } else {
         val err = try { JSONObject(String(body)).optString("error", "invalid_two_fa") } catch (_: Exception) { "invalid_two_fa" }
         Result.failure(Exception(err))
       }
-    } catch (e: Exception) { Result.failure(e) }
+    } catch (e: Exception) {
+      if (isNetwork(e)) Result.failure(NetworkError("network_error", e)) else Result.failure(e)
+    }
   }
 
   suspend fun setTwoFa(phone: String, pin: String, token: String): Result<Unit> {
@@ -153,9 +155,25 @@ class AuthRepository(private val host: String = "127.0.0.1", private val port: I
       val (t, body) = frame(0x02, payload)
       if (t == 0x02) {
         val j = JSONObject(String(body))
-        Result.success(AuthOk(j.getString("phone"), j.getString("pin"), token, j.getString("name")))
+        Result.success(AuthOk(j.getString("phone"), j.getString("pin"), token, j.getString("name"), j.optString("refresh_token", token)))
       } else {
         val err = try { JSONObject(String(body)).optString("error", "unauthenticated") } catch (_: Exception) { "unauthenticated" }
+        Result.failure(Exception(err))
+      }
+    } catch (e: Exception) {
+      if (isNetwork(e)) Result.failure(NetworkError("network_error", e)) else Result.failure(e)
+    }
+  }
+
+  suspend fun refresh(refreshToken: String): Result<AuthOk> {
+    return try {
+      val payload = JSONObject().put("refresh_token", refreshToken).toString().toByteArray()
+      val (t, body) = frame(0x17, payload)
+      if (t == 0x17) {
+        val j = JSONObject(String(body))
+        Result.success(AuthOk(j.getString("phone"), j.getString("pin"), j.getString("token"), j.getString("name"), j.getString("refresh_token")))
+      } else {
+        val err = try { JSONObject(String(body)).optString("error", "invalid_token") } catch (_: Exception) { "invalid_token" }
         Result.failure(Exception(err))
       }
     } catch (e: Exception) {

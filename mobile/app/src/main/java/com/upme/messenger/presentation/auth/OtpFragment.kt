@@ -137,7 +137,7 @@ class OtpFragment : Fragment() {
             btnVerif.setLoading(false, progressVerif)
             val ok = r.ok
             val prefs = AuthPrefs(requireContext())
-            prefs.phone = ok.phone; prefs.pin = ok.pin; prefs.token = ok.token; prefs.name = ok.name
+            prefs.phone = ok.phone; prefs.pin = ok.pin; prefs.token = ok.token; prefs.refreshToken = ok.refreshToken; prefs.name = ok.name
             try {
               // Publish real X25519 identity (fix HIGH pepper: publish proper keypair)
               val kp = com.upme.messenger.data.crypto.CryptoProvider.ensureIdentity(requireContext())
@@ -145,7 +145,7 @@ class OtpFragment : Fragment() {
               repo.publishIdentity(ok.phone, ok.token, pubB64)
             } catch (_: Exception) {}
             resendTimer?.cancel(); expiryTimer?.cancel()
-            val f = SetupProfilFragment().apply { arguments = Bundle().apply { putString("pin", ok.pin); putString("name", ok.name) } }
+            val f = SetupProfileFragment().apply { arguments = Bundle().apply { putString("pin", ok.pin); putString("name", ok.name) } }
             parentFragmentManager.beginTransaction().replace(R.id.container, f).commit()
           }
           is AuthRepository.VerifyResult.NeedTwoFa -> {
@@ -157,6 +157,11 @@ class OtpFragment : Fragment() {
             hideLoadingDialog()
             btnVerif.setLoading(false, progressVerif)
             val raw = r.msg
+            if (raw == "network_error") {
+              context?.let { AppToast.show(it, "Offline — cek koneksi, coba lagi") }
+              // Jangan clear OTP saat offline, jangan hit rate limit
+              return@launch
+            }
             val isLocked = raw.contains("too_many_attempts")
             // coba parse retry_after_ms dari "retry_after_ms:3600000" atau "86400000"
             val retryMs = Regex("retry_after[^0-9]*([0-9]+)").find(raw)?.groupValues?.get(1)?.toLongOrNull()
@@ -178,7 +183,7 @@ class OtpFragment : Fragment() {
               else -> "OTP salah: $raw"
             }
             context?.let { AppToast.show(it, msg) }
-            // shake & clear WA-style
+            // shake & clear WA-style — jangan clear jika offline (sudah return)
             otpBoxes.forEach { it.text.clear() }
             otpBoxes[0].requestFocus()
           }
@@ -202,6 +207,11 @@ class OtpFragment : Fragment() {
             otpBoxes.forEach { it.text.clear() }
             otpBoxes[0].requestFocus()
           }.onFailure { e ->
+            if (e.message == "network_error") {
+              btnResend.isEnabled = true; btnResend.alpha = 1f
+              context?.let { AppToast.show(it, "Offline — cek koneksi") }
+              return@onFailure
+            }
             val isRate = e.message == "rate_limited" || e.message == "rate_limited_ip"
             if (isRate) {
               context?.let { AppToast.show(it, "Terlalu sering, tunggu sebelum minta lagi") }
@@ -413,10 +423,10 @@ class OtpFragment : Fragment() {
           btn.isEnabled = true; btn.alpha = 1f
           r.onSuccess { ok ->
             val prefs = AuthPrefs(requireContext())
-            prefs.phone = ok.phone; prefs.pin = ok.pin; prefs.token = ok.token; prefs.name = ok.name
+            prefs.phone = ok.phone; prefs.pin = ok.pin; prefs.token = ok.token; prefs.refreshToken = ok.refreshToken; prefs.name = ok.name
             context?.let { AppToast.show(it, "2FA sukses") }
             dialog.dismiss()
-            val f = SetupProfilFragment().apply { arguments = Bundle().apply { putString("pin", ok.pin); putString("name", ok.name) } }
+            val f = SetupProfileFragment().apply { arguments = Bundle().apply { putString("pin", ok.pin); putString("name", ok.name) } }
             parentFragmentManager.beginTransaction().replace(R.id.container, f).commit()
           }.onFailure { e -> context?.let { AppToast.show(it, "2FA salah: ${e.message}") } }
         }

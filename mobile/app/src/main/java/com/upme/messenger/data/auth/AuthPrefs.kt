@@ -68,9 +68,11 @@ class AuthPrefs(ctx: Context) {
   var phone: String? get() = p.getString("phone", null); set(v) { p.edit().putString("phone", v).apply() }
   var pin: String? get() = p.getString("pin", null); set(v) { p.edit().putString("pin", v).apply() }
   var token: String? get() = p.getString("token", null); set(v) { p.edit().putString("token", v).apply() }
+  var refreshToken: String? get() = p.getString("refresh_token", null); set(v) { p.edit().putString("refresh_token", v).apply() }
   var name: String? get() = p.getString("name", null); set(v) { p.edit().putString("name", v).apply() }
-  val isLoggedIn: Boolean get() = !token.isNullOrEmpty() && !phone.isNullOrEmpty() && !JwtHelper.isExpired(token)
-  val needsRefresh: Boolean get() = JwtHelper.isExpired(token)
+  val isLoggedIn: Boolean get() = !token.isNullOrEmpty() && !phone.isNullOrEmpty() && (!JwtHelper.isExpired(token) || hasRefresh)
+  val needsRefresh: Boolean get() = JwtHelper.isExpired(token) && !refreshToken.isNullOrEmpty()
+  val hasRefresh: Boolean get() = !refreshToken.isNullOrEmpty()
   fun clear() { p.edit().clear().apply() }
   // Hapus legacy plain prefs jika ada setelah migrasi
   fun migrateLegacy(ctx: Context) {
@@ -80,6 +82,7 @@ class AuthPrefs(ctx: Context) {
         p.edit().putString("phone", legacy.getString("phone", null))
           .putString("pin", legacy.getString("pin", null))
           .putString("token", legacy.getString("token", null))
+          .putString("refresh_token", legacy.getString("refresh_token", null))
           .putString("name", legacy.getString("name", null))
           .apply()
         legacy.edit().clear().apply()
